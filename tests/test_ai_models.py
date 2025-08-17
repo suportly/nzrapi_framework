@@ -3,6 +3,7 @@ Tests for AI models and MCP protocol
 """
 
 import asyncio
+import uuid
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -297,85 +298,89 @@ class TestContextManager:
         """Create context manager for testing"""
         config = ContextConfig(
             default_ttl=60,  # 1 minute for fast tests
-            cleanup_interval=1,  # 1 second for fast tests
+            cleanup_interval=10,  # 10 seconds for stable tests
         )
         return ContextManager(config)
 
     @pytest.mark.asyncio
     async def test_context_creation(self, context_manager):
         """Test context creation and retrieval"""
+        context_id = f"test_context_{uuid.uuid4().hex[:8]}"
         await context_manager.start()
+        try:
+            # Create context
+            context = await context_manager.create_context(context_id, metadata={"user_id": "123"})
 
-        # Create context
-        context = await context_manager.create_context("test_context", metadata={"user_id": "123"})
+            assert context.context_id == context_id
+            assert context.metadata["user_id"] == "123"
 
-        assert context.context_id == "test_context"
-        assert context.metadata["user_id"] == "123"
-
-        # Retrieve context
-        retrieved = await context_manager.get_context("test_context")
-        assert retrieved is not None
-        assert retrieved.context_id == "test_context"
-
-        await context_manager.stop()
+            # Retrieve context
+            retrieved = await context_manager.get_context(context_id)
+            assert retrieved is not None
+            assert retrieved.context_id == context_id
+        finally:
+            await context_manager.stop()
 
     @pytest.mark.asyncio
     async def test_context_messages(self, context_manager):
         """Test adding messages to context"""
+        context_id = f"test_context_{uuid.uuid4().hex[:8]}"
         await context_manager.start()
+        try:
+            await context_manager.create_context(context_id)
 
-        await context_manager.create_context("test_context")
+            # Add messages
+            success = await context_manager.add_message(context_id, "user", "Hello")
+            assert success is True
 
-        # Add messages
-        success = await context_manager.add_message("test_context", "user", "Hello")
-        assert success is True
+            success = await context_manager.add_message(context_id, "assistant", "Hi there!")
+            assert success is True
 
-        success = await context_manager.add_message("test_context", "assistant", "Hi there!")
-        assert success is True
-
-        # Check messages
-        context = await context_manager.get_context("test_context")
-        assert len(context.messages) == 2
-
-        await context_manager.stop()
+            # Check messages
+            context = await context_manager.get_context(context_id)
+            assert len(context.messages) == 2
+        finally:
+            await context_manager.stop()
 
     @pytest.mark.asyncio
     async def test_context_state_updates(self, context_manager):
         """Test context state updates"""
+        context_id = f"test_context_{uuid.uuid4().hex[:8]}"
         await context_manager.start()
+        try:
+            await context_manager.create_context(context_id)
 
-        await context_manager.create_context("test_context")
+            # Update state
+            success = await context_manager.update_state(context_id, "step", "greeting")
+            assert success is True
 
-        # Update state
-        success = await context_manager.update_state("test_context", "step", "greeting")
-        assert success is True
-
-        # Check state
-        context = await context_manager.get_context("test_context")
-        assert context.state["step"] == "greeting"
-
-        await context_manager.stop()
+            # Check state
+            context = await context_manager.get_context(context_id)
+            assert context.state["step"] == "greeting"
+        finally:
+            await context_manager.stop()
 
     @pytest.mark.asyncio
     async def test_context_expiration(self, context_manager):
         """Test context expiration"""
+        context_id = f"test_context_{uuid.uuid4().hex[:8]}"
         await context_manager.start()
+        try:
+            # Create context with very short TTL
+            context = await context_manager.create_context(context_id, ttl=1)  # 1 second
 
-        # Create context with very short TTL
-        context = await context_manager.create_context("test_context", ttl=1)  # 1 second
+            # Context should exist initially
+            retrieved = await context_manager.get_context(context_id)
+            assert retrieved is not None
 
-        # Context should exist initially
-        retrieved = await context_manager.get_context("test_context")
-        assert retrieved is not None
+            # Wait for expiration
+            await asyncio.sleep(2)
 
-        # Wait for expiration
-        await asyncio.sleep(2)
-
-        # Context should be expired
-        retrieved = await context_manager.get_context("test_context")
-        assert retrieved is None
-
-        await context_manager.stop()
+            # Context should be expired
+            retrieved = await context_manager.get_context(context_id)
+            assert retrieved is None
+        finally:
+            await context_manager.stop()
 
     def test_context_manager_stats(self, context_manager):
         """Test context manager statistics"""

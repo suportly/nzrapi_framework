@@ -3,7 +3,9 @@ Serializer system inspired by Django REST Framework
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
+
+from sqlalchemy import Column
 
 from .exceptions import ValidationError
 from .validators import BaseValidator
@@ -183,16 +185,16 @@ class DateTimeField(Field):
 
         raise ValidationError("Invalid datetime value")
 
-    def to_representation(self, value: datetime) -> str:
+    def to_representation(self, value: Optional[datetime]) -> Optional[str]:
         if value:
             return value.isoformat()
-        return value
+        return None
 
 
 class ListField(Field):
     """List field with optional child field"""
 
-    def __init__(self, child: Optional[Field] = None, **kwargs):
+    def __init__(self, child: Field, **kwargs):
         self.child = child
         super().__init__(**kwargs)
 
@@ -223,6 +225,9 @@ class DictField(Field):
 
 class BaseSerializer:
     """Base serializer class inspired by DRF"""
+
+    if TYPE_CHECKING:
+        fields: Dict[str, Field]
 
     def __init__(self, instance=None, data=None, *, many=False, context=None, **kwargs):
         self.instance = instance
@@ -298,7 +303,7 @@ class BaseSerializer:
                 raise ValidationError(f"Unexpected error: {str(e)}")
             return False
 
-    def to_internal_value(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def to_internal_value(self, data: Any) -> Dict[str, Any]:
         """Convert input data to validated internal representation"""
         if not isinstance(data, dict):
             raise ValidationError("Expected a dictionary")
@@ -318,7 +323,7 @@ class BaseSerializer:
                 errors[field_name] = str(e)
 
         if errors:
-            raise ValidationError(errors)
+            raise ValidationError(str(errors))
 
         # Run object-level validation
         validated_data = self.validate(validated_data)
@@ -371,12 +376,16 @@ class BaseSerializer:
 class ModelSerializer(BaseSerializer):
     """Serializer that works with SQLAlchemy models"""
 
-    class Meta:
-        model = None
-        fields = "__all__"
-        exclude = None
-        read_only_fields = ()
-        extra_kwargs = {}
+    if TYPE_CHECKING:
+
+        class _Meta:
+            model: Type[Any]
+            fields: Union[List[str], str]
+            exclude: List[str]
+            read_only_fields: List[str]
+            extra_kwargs: Dict[str, Dict[str, Any]]
+
+        Meta: _Meta
 
     @classmethod
     def _get_fields(cls) -> Dict[str, Field]:
@@ -419,31 +428,37 @@ class ModelSerializer(BaseSerializer):
         return fields
 
     @classmethod
-    def _create_field_from_column(cls, column) -> Optional[Field]:
+    def _create_field_from_column(cls, column: Column) -> Optional[Field]:
         """Create field from SQLAlchemy column"""
         # This is a simplified mapping - in reality you'd handle more types
         type_name = str(column.type)
 
-        kwargs = {
+        kwargs: Dict[str, Any] = {
             "required": not column.nullable and column.default is None,
             "allow_null": column.nullable,
         }
 
-        if "VARCHAR" in type_name or "TEXT" in type_name:
-            if hasattr(column.type, "length") and column.type.length:
-                kwargs["max_length"] = column.type.length
-            return CharField(**kwargs)
-        elif "INTEGER" in type_name:
-            return IntegerField(**kwargs)
-        elif "FLOAT" in type_name or "REAL" in type_name:
-            return FloatField(**kwargs)
-        elif "BOOLEAN" in type_name:
-            return BooleanField(**kwargs)
-        elif "DATETIME" in type_name or "TIMESTAMP" in type_name:
-            return DateTimeField(**kwargs)
-        else:
-            # Default to CharField for unknown types
-            return CharField(**kwargs)
+        field_class_map = {
+            "VARCHAR": CharField,
+            "TEXT": CharField,
+            "INTEGER": IntegerField,
+            "FLOAT": FloatField,
+            "REAL": FloatField,
+            "BOOLEAN": BooleanField,
+            "DATETIME": DateTimeField,
+            "TIMESTAMP": DateTimeField,
+        }
+
+        field_class: Type[Field] = CharField  # Default
+        for type_key, f_class in field_class_map.items():
+            if type_key in type_name:
+                field_class = f_class
+                break
+
+        if field_class in [CharField] and hasattr(column.type, "length") and column.type.length:
+            kwargs["max_length"] = column.type.length
+
+        return field_class(**kwargs)
 
     def create(self, validated_data: Dict[str, Any]) -> Any:
         """Create model instance"""

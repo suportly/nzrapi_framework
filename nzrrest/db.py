@@ -5,13 +5,26 @@ Database integration with SQLAlchemy async for nzrRest framework
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any, AsyncGenerator, Dict, Optional, Type
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Type
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, MetaData, String, Text, create_engine
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    MetaData,
+    String,
+    Text,
+    create_engine,
+    text,
+)
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
+    AsyncSessionTransaction,
+    AsyncTransaction,
     async_sessionmaker,
     create_async_engine,
 )
@@ -54,7 +67,7 @@ class DatabaseManager:
         self.echo = echo
 
         # Engine configuration
-        self.engine_kwargs = {
+        self.engine_kwargs: Dict[str, Any] = {
             "echo": echo,
             "pool_size": pool_size,
             "max_overflow": max_overflow,
@@ -151,7 +164,7 @@ class DatabaseManager:
             raise RuntimeError("Database not connected")
 
         async with self.engine.begin() as conn:
-            result = await conn.execute(sql, parameters or {})
+            result = await conn.execute(text(sql), parameters or {})
             return result
 
     async def health_check(self) -> Dict[str, Any]:
@@ -165,14 +178,14 @@ class DatabaseManager:
 
         try:
             async with self.engine.begin() as conn:
-                await conn.execute("SELECT 1")
+                await conn.execute(text("SELECT 1"))
 
             return {
                 "status": "healthy",
                 "database_url": (self.database_url.split("@")[-1] if "@" in self.database_url else self.database_url),
-                "pool_size": self.engine.pool.size(),
-                "checked_out": self.engine.pool.checkedout(),
-                "overflow": self.engine.pool.overflow(),
+                "pool_size": self.engine.pool.status().get("checkedin"),  # type: ignore[attr-defined]
+                "checked_out": self.engine.pool.status().get("checkedout"),  # type: ignore[attr-defined]
+                "overflow": self.engine.pool.status().get("overflow"),  # type: ignore[attr-defined]
             }
 
         except Exception as e:
@@ -288,7 +301,7 @@ class Repository:
         """
         from sqlalchemy import func, select
 
-        stmt = select(func.count(self.model_class.id))
+        stmt = select(func.count()).select_from(self.model_class)
         result = await self.session.execute(stmt)
         return result.scalar()
 
@@ -298,7 +311,7 @@ class TransactionManager:
 
     def __init__(self, session: AsyncSession):
         self.session = session
-        self._savepoints = []
+        self._savepoints: List[Tuple[str, AsyncSessionTransaction]] = []
 
     async def begin_savepoint(self, name: Optional[str] = None) -> str:
         """Begin a savepoint

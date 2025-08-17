@@ -134,8 +134,8 @@ class ContextManager:
             Updated context or None if not found
         """
         async with self._lock:
-            context = await self.get_context(context_id)
-            if not context:
+            context = self.contexts.get(context_id)
+            if not context or context.is_expired():
                 return None
 
             # Update fields
@@ -170,8 +170,8 @@ class ContextManager:
             True if message was added, False if context not found
         """
         async with self._lock:
-            context = await self.get_context(context_id)
-            if not context:
+            context = self.contexts.get(context_id)
+            if not context or context.is_expired():
                 return False
 
             context.add_message(role, content, metadata)
@@ -198,8 +198,8 @@ class ContextManager:
             True if state was updated, False if context not found
         """
         async with self._lock:
-            context = await self.get_context(context_id)
-            if not context:
+            context = self.contexts.get(context_id)
+            if not context or context.is_expired():
                 return False
 
             context.update_state(key, value)
@@ -281,13 +281,19 @@ class ContextManager:
         while True:
             try:
                 await asyncio.sleep(self.config.cleanup_interval)
-                cleaned = await self.cleanup_expired()
-                if cleaned > 0:
-                    print(f"Cleaned up {cleaned} expired contexts")
             except asyncio.CancelledError:
                 break
+
+            try:
+                cleaned = await self.cleanup_expired()
+                if cleaned > 0:
+                    # In a real app, you'd use a logger
+                    # print(f"Cleaned up {cleaned} expired contexts")
+                    pass
             except Exception as e:
-                print(f"Error in context cleanup worker: {e}")
+                # In a real app, you'd use a logger
+                # print(f"Error in context cleanup worker: {e}")
+                pass
 
     def get_stats(self) -> Dict[str, Any]:
         """Get context manager statistics

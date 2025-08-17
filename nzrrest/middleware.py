@@ -14,6 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
+from starlette.types import ASGIApp
 
 from .exceptions import AuthenticationError, RateLimitError
 from .responses import ErrorResponse
@@ -26,7 +27,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
     def __init__(
         self,
-        app,
+        app: ASGIApp,
         log_level: str = "INFO",
         include_body: bool = False,
         max_body_size: int = 1024,
@@ -112,7 +113,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     def __init__(
         self,
-        app,
+        app: ASGIApp,
         calls_per_minute: int = 60,
         calls_per_hour: int = 1000,
         calls_per_day: int = 10000,
@@ -127,9 +128,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.key_func = key_func or self._default_key_func
 
         # Storage for rate limit counters
-        self.minute_counters = defaultdict(lambda: deque())
-        self.hour_counters = defaultdict(lambda: deque())
-        self.day_counters = defaultdict(lambda: deque())
+        self.minute_counters: Dict[str, deque] = defaultdict(lambda: deque())
+        self.hour_counters: Dict[str, deque] = defaultdict(lambda: deque())
+        self.day_counters: Dict[str, deque] = defaultdict(lambda: deque())
 
         # Cleanup task
         self._cleanup_task = None
@@ -193,7 +194,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
     def __init__(
         self,
-        app,
+        app: ASGIApp,
         secret_key: str,
         algorithm: str = "HS256",
         exclude_paths: Optional[List[str]] = None,
@@ -265,7 +266,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 class ErrorHandlingMiddleware(BaseHTTPMiddleware):
     """Global error handling middleware"""
 
-    def __init__(self, app, debug: bool = False):
+    def __init__(self, app: ASGIApp, debug: bool = False):
         super().__init__(app)
         self.debug = debug
 
@@ -323,7 +324,7 @@ class CompressionMiddleware(BaseHTTPMiddleware):
 
     def __init__(
         self,
-        app,
+        app: ASGIApp,
         minimum_size: int = 1024,
         compressible_types: Optional[Set[str]] = None,
     ):
@@ -379,9 +380,10 @@ class CompressionMiddleware(BaseHTTPMiddleware):
         import gzip
 
         # Get response body
-        body = b""
-        async for chunk in response.body_iterator:
-            body += chunk
+        if hasattr(response, "body"):
+            body = response.body
+        else:
+            body = b""
 
         # Compress body
         compressed_body = gzip.compress(body)
@@ -402,9 +404,9 @@ class CompressionMiddleware(BaseHTTPMiddleware):
 class MetricsMiddleware(BaseHTTPMiddleware):
     """Middleware for collecting application metrics"""
 
-    def __init__(self, app):
+    def __init__(self, app: ASGIApp):
         super().__init__(app)
-        self.metrics = {
+        self.metrics: Dict[str, Any] = {
             "requests_total": 0,
             "requests_by_method": defaultdict(int),
             "requests_by_status": defaultdict(int),
@@ -468,16 +470,16 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
 
 # Middleware factory functions
-def create_cors_middleware(**kwargs) -> CORSMiddleware:
+def create_cors_middleware(app: ASGIApp, **kwargs) -> CORSMiddleware:
     """Create CORS middleware with sensible defaults"""
-    defaults = {
+    config = {
         "allow_origins": ["*"],
         "allow_credentials": True,
         "allow_methods": ["*"],
         "allow_headers": ["*"],
+        **kwargs,
     }
-    defaults.update(kwargs)
-    return CORSMiddleware(**defaults)
+    return CORSMiddleware(app, **config)
 
 
 def create_rate_limit_middleware(

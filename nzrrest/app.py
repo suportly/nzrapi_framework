@@ -4,11 +4,14 @@ Main application class for nzrRest framework
 
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
+from starlette.requests import Request
 from starlette.responses import JSONResponse as StarletteJSONResponse
+from starlette.responses import Response
+from starlette.websockets import WebSocket
 
 from .ai.registry import AIRegistry
 from .db import DatabaseManager
@@ -40,7 +43,16 @@ class NzrRestApp:
         self.middleware_stack: List[Middleware] = []
         self.startup_handlers: List[Callable] = []
         self.shutdown_handlers: List[Callable] = []
-        self.exception_handlers: Dict[Any, Callable] = {}
+        # Starlette exception handler type
+        ExceptionHandler = (
+            Callable[
+                [Request, Exception],
+                Union[Response, Awaitable[Response]],
+            ]
+            | Callable[[WebSocket, Exception], Awaitable[None]]
+        )
+
+        self.exception_handlers: Dict[Any, ExceptionHandler] = {}
 
         # Router for the app
         self.router = Router()
@@ -148,13 +160,14 @@ class NzrRestApp:
 
         return app
 
-    async def _handle_nzrrest_exception(self, request, exc: NzrRestException):
+    async def _handle_nzrrest_exception(self, request: Request, exc: Exception) -> Response:
+        assert isinstance(exc, NzrRestException)
         """Handle nzrRest framework exceptions"""
         return ErrorResponse(
             message=exc.message, status_code=exc.status_code, details=exc.details
         ).to_starlette_response()
 
-    async def _handle_generic_exception(self, request, exc: Exception):
+    async def _handle_generic_exception(self, request: Request, exc: Exception):
         """Handle generic exceptions"""
         if self.debug:
             # In debug mode, show full exception details

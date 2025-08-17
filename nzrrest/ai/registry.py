@@ -258,7 +258,7 @@ class AIRegistry:
             Batch response object
         """
         start_time = time.time()
-        responses = []
+        responses: List[Union[MCPResponse, MCPError]] = []
         success_count = 0
         error_count = 0
 
@@ -270,17 +270,19 @@ class AIRegistry:
                 tasks.append(task)
 
             raw_responses = await asyncio.gather(*tasks, return_exceptions=True)
-            
+
             # Filter out exceptions and convert to proper responses
             for raw_response in raw_responses:
-                if isinstance(raw_response, Exception):
+                if isinstance(raw_response, BaseException):
                     # Convert exception to MCPError
-                    responses.append(MCPError(
-                        request_id="unknown",
-                        error_code="PROCESSING_ERROR",
-                        error_message=str(raw_response),
-                        details={"exception_type": type(raw_response).__name__}
-                    ))
+                    responses.append(
+                        MCPError(
+                            request_id="unknown",
+                            error_code="PROCESSING_ERROR",
+                            error_message=str(raw_response),
+                            details={"exception_type": type(raw_response).__name__},
+                        )
+                    )
                 else:
                     responses.append(raw_response)
         else:

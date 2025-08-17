@@ -156,6 +156,7 @@ extend-exclude = '''
   | \.venv
   | build
   | dist
+  | templates
 )/
 '''
 

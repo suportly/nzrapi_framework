@@ -9,7 +9,7 @@ from .context import ContextManager
 
 __all__ = [
     "AIModel",
-    "AIRegistry", 
+    "AIRegistry",
     "MCPRequest",
     "MCPResponse",
     "ContextManager",

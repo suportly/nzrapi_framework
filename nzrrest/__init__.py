@@ -19,14 +19,14 @@ __author__ = "nzrRest Team"
 
 __all__ = [
     "NzrRestApp",
-    "Router", 
+    "Router",
     "Request",
     "Response",
     "JSONResponse",
     "BaseSerializer",
     "ModelSerializer",
     "NzrRestException",
-    "ValidationError", 
+    "ValidationError",
     "ModelNotFoundError",
     "AuthenticationError",
 ]

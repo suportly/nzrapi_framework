@@ -113,6 +113,8 @@ class AIModel(ABC):
                 result=result,
                 model_info=self.model_info,
                 execution_time=execution_time,
+                tokens_used=None,
+                cost=None,
             )
 
             return response
@@ -180,6 +182,8 @@ class AIModel(ABC):
                 model_name=self.name,
                 status="unhealthy",
                 last_check=datetime.utcnow(),
+                response_time=None,
+                success_rate=None,
                 error_count=self.error_count,
                 details={"error": str(e)},
             )

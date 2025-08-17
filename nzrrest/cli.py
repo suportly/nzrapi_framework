@@ -388,7 +388,7 @@ def _get_project_info() -> dict:
     if requirements_file.exists():
         with open(requirements_file) as f:
             deps = [line.strip() for line in f if line.strip() and not line.startswith("#")]
-            info["Dependencies"] = len(deps)
+            info["Dependencies"] = str(len(deps))
 
     # Check git
     if Path(".git").exists():

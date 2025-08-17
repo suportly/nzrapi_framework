@@ -137,7 +137,7 @@ class AIRegistry:
         for name, model in self.models.items():
             model_info = model.model_info.copy()
             model_info["name"] = name
-            model_info["is_loaded"] = model.is_loaded
+            model_info["is_loaded"] = str(model.is_loaded)
             model_info["health_status"] = getattr(model, "_health_status", "unknown")
             models_info.append(model_info)
 
@@ -201,6 +201,8 @@ class AIRegistry:
                 health_results[name] = ModelHealth(
                     model_name=name,
                     status="unhealthy",
+                    response_time=None,
+                    success_rate=None,
                     error_count=1,
                     details={"error": str(e)},
                 )
@@ -267,7 +269,20 @@ class AIRegistry:
                 task = asyncio.create_task(self._safe_process_request(req))
                 tasks.append(task)
 
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
+            raw_responses = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Filter out exceptions and convert to proper responses
+            for raw_response in raw_responses:
+                if isinstance(raw_response, Exception):
+                    # Convert exception to MCPError
+                    responses.append(MCPError(
+                        request_id="unknown",
+                        error_code="PROCESSING_ERROR",
+                        error_message=str(raw_response),
+                        details={"exception_type": type(raw_response).__name__}
+                    ))
+                else:
+                    responses.append(raw_response)
         else:
             # Process requests sequentially
             for req in batch_request.requests:

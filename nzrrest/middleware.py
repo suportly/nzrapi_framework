@@ -167,20 +167,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Clean old entries and check limits
         return (
-            self._check_and_clean_counter(
-                self.minute_counters[key], now, 60, self.calls_per_minute
-            )
-            and self._check_and_clean_counter(
-                self.hour_counters[key], now, 3600, self.calls_per_hour
-            )
-            and self._check_and_clean_counter(
-                self.day_counters[key], now, 86400, self.calls_per_day
-            )
+            self._check_and_clean_counter(self.minute_counters[key], now, 60, self.calls_per_minute)
+            and self._check_and_clean_counter(self.hour_counters[key], now, 3600, self.calls_per_hour)
+            and self._check_and_clean_counter(self.day_counters[key], now, 86400, self.calls_per_day)
         )
 
-    def _check_and_clean_counter(
-        self, counter: deque, now: float, window: int, limit: int
-    ) -> bool:
+    def _check_and_clean_counter(self, counter: deque, now: float, window: int, limit: int) -> bool:
         """Check and clean a specific counter"""
         # Remove old entries
         while counter and counter[0] < now - window:
@@ -469,9 +461,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             "max_response_time": round(max_response_time, 4),
             "min_response_time": round(min_response_time, 4),
             "error_rate": round(
-                self.metrics["errors_total"]
-                / max(self.metrics["requests_total"], 1)
-                * 100,
+                self.metrics["errors_total"] / max(self.metrics["requests_total"], 1) * 100,
                 2,
             ),
         }
@@ -494,9 +484,7 @@ def create_rate_limit_middleware(
     calls_per_minute: int = 60, calls_per_hour: int = 1000, **kwargs
 ) -> RateLimitMiddleware:
     """Create rate limiting middleware with defaults"""
-    return RateLimitMiddleware(
-        calls_per_minute=calls_per_minute, calls_per_hour=calls_per_hour, **kwargs
-    )
+    return RateLimitMiddleware(calls_per_minute=calls_per_minute, calls_per_hour=calls_per_hour, **kwargs)
 
 
 def create_auth_middleware(secret_key: str, **kwargs) -> AuthenticationMiddleware:

@@ -307,9 +307,7 @@ class TestContextManager:
         await context_manager.start()
 
         # Create context
-        context = await context_manager.create_context(
-            "test_context", metadata={"user_id": "123"}
-        )
+        context = await context_manager.create_context("test_context", metadata={"user_id": "123"})
 
         assert context.context_id == "test_context"
         assert context.metadata["user_id"] == "123"
@@ -332,9 +330,7 @@ class TestContextManager:
         success = await context_manager.add_message("test_context", "user", "Hello")
         assert success is True
 
-        success = await context_manager.add_message(
-            "test_context", "assistant", "Hi there!"
-        )
+        success = await context_manager.add_message("test_context", "assistant", "Hi there!")
         assert success is True
 
         # Check messages
@@ -366,9 +362,7 @@ class TestContextManager:
         await context_manager.start()
 
         # Create context with very short TTL
-        context = await context_manager.create_context(
-            "test_context", ttl=1  # 1 second
-        )
+        context = await context_manager.create_context("test_context", ttl=1)  # 1 second
 
         # Context should exist initially
         retrieved = await context_manager.get_context("test_context")

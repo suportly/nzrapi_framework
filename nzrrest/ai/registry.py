@@ -4,6 +4,7 @@ AI model registry for managing multiple models in nzrRest
 
 import asyncio
 import logging
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, Union
 
@@ -55,9 +56,7 @@ class AIRegistry:
         self.model_classes[model_type] = model_class
         logger.info(f"Registered model class '{model_type}': {model_class.__name__}")
 
-    async def add_model(
-        self, name: str, model_type: str, config: Dict[str, Any]
-    ) -> AIModel:
+    async def add_model(self, name: str, model_type: str, config: Dict[str, Any]) -> AIModel:
         """Add a new model to the registry
 
         Args:
@@ -77,9 +76,7 @@ class AIRegistry:
 
             if model_type not in self.model_classes:
                 available_types = list(self.model_classes.keys())
-                raise ValueError(
-                    f"Unknown model type '{model_type}'. Available: {available_types}"
-                )
+                raise ValueError(f"Unknown model type '{model_type}'. Available: {available_types}")
 
             # Create model instance
             model_class = self.model_classes[model_type]
@@ -188,9 +185,7 @@ class AIRegistry:
             # Check cache first
             if use_cache and name in self._health_cache:
                 cached_health = self._health_cache[name]
-                cache_age = (
-                    datetime.utcnow() - cached_health.last_check
-                ).total_seconds()
+                cache_age = (datetime.utcnow() - cached_health.last_check).total_seconds()
 
                 if cache_age < self._health_cache_ttl:
                     health_results[name] = cached_health
@@ -212,9 +207,7 @@ class AIRegistry:
 
         return health_results
 
-    async def predict(
-        self, model_name: str, payload: Dict[str, Any], context: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+    async def predict(self, model_name: str, payload: Dict[str, Any], context: Optional[Dict] = None) -> Dict[str, Any]:
         """Make prediction using specified model
 
         Args:
@@ -234,9 +227,7 @@ class AIRegistry:
 
         return await model.predict(payload, context)
 
-    async def process_mcp_request(
-        self, request: MCPRequest, context: Optional[Dict] = None
-    ) -> MCPResponse:
+    async def process_mcp_request(self, request: MCPRequest, context: Optional[Dict] = None) -> MCPResponse:
         """Process an MCP request
 
         Args:
@@ -255,9 +246,7 @@ class AIRegistry:
 
         return await model.process_request(request, context)
 
-    async def process_batch_request(
-        self, batch_request: BatchMCPRequest
-    ) -> BatchMCPResponse:
+    async def process_batch_request(self, batch_request: BatchMCPRequest) -> BatchMCPResponse:
         """Process a batch of MCP requests
 
         Args:
@@ -303,9 +292,7 @@ class AIRegistry:
             metadata=batch_request.metadata,
         )
 
-    async def _safe_process_request(
-        self, request: MCPRequest
-    ) -> Union[MCPResponse, MCPError]:
+    async def _safe_process_request(self, request: MCPRequest) -> Union[MCPResponse, MCPError]:
         """Safely process a single MCP request
 
         Args:

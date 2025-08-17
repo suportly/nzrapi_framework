@@ -91,9 +91,7 @@ class Request:
         """Get header value with default"""
         return self.headers.get(name.lower(), default)
 
-    def get_query_param(
-        self, name: str, default: Optional[str] = None
-    ) -> Optional[str]:
+    def get_query_param(self, name: str, default: Optional[str] = None) -> Optional[str]:
         """Get query parameter with default"""
         return self.query_params.get(name, default)
 

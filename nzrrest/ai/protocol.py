@@ -12,18 +12,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class MCPRequest(BaseModel):
     """Standardized request for Model Context Protocol"""
 
-    request_id: str = Field(
-        default_factory=lambda: str(uuid4()), description="Unique request identifier"
-    )
+    request_id: str = Field(default_factory=lambda: str(uuid4()), description="Unique request identifier")
     context_id: Optional[str] = Field(None, description="Context session identifier")
     model_name: str = Field(..., description="Name of the AI model to use")
     payload: Dict[str, Any] = Field(..., description="Input data for the model")
-    metadata: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="Additional metadata"
-    )
-    timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Request timestamp"
-    )
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional metadata")
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Request timestamp")
 
     @field_validator("model_name")
     @classmethod
@@ -51,17 +45,11 @@ class MCPResponse(BaseModel):
     context_id: str = Field(..., description="Context session identifier")
     model_name: str = Field(..., description="Name of the AI model used")
     result: Dict[str, Any] = Field(..., description="Model output/result")
-    model_info: Optional[Dict[str, str]] = Field(
-        None, description="Model metadata and info"
-    )
-    execution_time: Optional[float] = Field(
-        None, description="Execution time in seconds"
-    )
+    model_info: Optional[Dict[str, str]] = Field(None, description="Model metadata and info")
+    execution_time: Optional[float] = Field(None, description="Execution time in seconds")
     tokens_used: Optional[int] = Field(None, description="Number of tokens consumed")
     cost: Optional[float] = Field(None, description="Cost of the request")
-    timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Response timestamp"
-    )
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Response timestamp")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -87,12 +75,8 @@ class MCPError(BaseModel):
     request_id: str = Field(..., description="Original request identifier")
     error_code: str = Field(..., description="Error code")
     error_message: str = Field(..., description="Human-readable error message")
-    details: Optional[Dict[str, Any]] = Field(
-        None, description="Additional error details"
-    )
-    timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Error timestamp"
-    )
+    details: Optional[Dict[str, Any]] = Field(None, description="Additional error details")
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Error timestamp")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -110,26 +94,14 @@ class ContextData(BaseModel):
     """Context data structure for maintaining conversation state"""
 
     context_id: str = Field(..., description="Unique context identifier")
-    created_at: datetime = Field(
-        default_factory=datetime.utcnow, description="Context creation time"
-    )
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, description="Last update time"
-    )
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="Context metadata"
-    )
-    messages: List[Dict[str, Any]] = Field(
-        default_factory=list, description="Message history"
-    )
-    state: Dict[str, Any] = Field(
-        default_factory=dict, description="Persistent state data"
-    )
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="Context creation time")
+    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update time")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Context metadata")
+    messages: List[Dict[str, Any]] = Field(default_factory=list, description="Message history")
+    state: Dict[str, Any] = Field(default_factory=dict, description="Persistent state data")
     ttl: Optional[int] = Field(None, description="Time to live in seconds")
 
-    def add_message(
-        self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None
-    ):
+    def add_message(self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None):
         """Add a message to the context"""
         message = {
             "role": role,
@@ -182,17 +154,11 @@ class ModelHealth(BaseModel):
 
     model_name: str = Field(..., description="Model identifier")
     status: str = Field(..., description="Health status (healthy/degraded/unhealthy)")
-    last_check: datetime = Field(
-        default_factory=datetime.utcnow, description="Last health check"
-    )
-    response_time: Optional[float] = Field(
-        None, description="Average response time in seconds"
-    )
+    last_check: datetime = Field(default_factory=datetime.utcnow, description="Last health check")
+    response_time: Optional[float] = Field(None, description="Average response time in seconds")
     success_rate: Optional[float] = Field(None, description="Success rate percentage")
     error_count: int = Field(default=0, description="Number of recent errors")
-    details: Optional[Dict[str, Any]] = Field(
-        None, description="Additional health details"
-    )
+    details: Optional[Dict[str, Any]] = Field(None, description="Additional health details")
 
     @field_validator("status")
     @classmethod
@@ -223,14 +189,10 @@ class ModelHealth(BaseModel):
 class BatchMCPRequest(BaseModel):
     """Batch request for processing multiple MCP requests"""
 
-    batch_id: str = Field(
-        default_factory=lambda: str(uuid4()), description="Batch identifier"
-    )
+    batch_id: str = Field(default_factory=lambda: str(uuid4()), description="Batch identifier")
     requests: List[MCPRequest] = Field(..., description="List of MCP requests")
     parallel: bool = Field(default=True, description="Process requests in parallel")
-    metadata: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="Batch metadata"
-    )
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Batch metadata")
 
     @field_validator("requests")
     @classmethod
@@ -246,14 +208,8 @@ class BatchMCPResponse(BaseModel):
     """Batch response for multiple MCP requests"""
 
     batch_id: str = Field(..., description="Batch identifier")
-    responses: List[Union[MCPResponse, MCPError]] = Field(
-        ..., description="List of responses"
-    )
-    total_execution_time: Optional[float] = Field(
-        None, description="Total batch execution time"
-    )
+    responses: List[Union[MCPResponse, MCPError]] = Field(..., description="List of responses")
+    total_execution_time: Optional[float] = Field(None, description="Total batch execution time")
     success_count: int = Field(..., description="Number of successful requests")
     error_count: int = Field(..., description="Number of failed requests")
-    metadata: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="Batch metadata"
-    )
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Batch metadata")

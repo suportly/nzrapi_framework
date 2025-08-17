@@ -4,9 +4,10 @@ Database integration with SQLAlchemy async for nzrRest framework
 
 import asyncio
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any, AsyncGenerator, Dict, Optional, Type
 
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, MetaData, String, Text, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -14,7 +15,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase, declarative_base
+from sqlalchemy.orm import DeclarativeBase, declarative_base, relationship
 from sqlalchemy.pool import StaticPool
 
 from .exceptions import NzrRestException
@@ -63,9 +64,7 @@ class DatabaseManager:
 
         # Handle SQLite special case
         if database_url.startswith("sqlite"):
-            self.engine_kwargs.update(
-                {"poolclass": StaticPool, "connect_args": {"check_same_thread": False}}
-            )
+            self.engine_kwargs.update({"poolclass": StaticPool, "connect_args": {"check_same_thread": False}})
 
         self.engine: Optional[AsyncEngine] = None
         self.session_factory: Optional[async_sessionmaker] = None
@@ -75,9 +74,7 @@ class DatabaseManager:
         """Connect to the database"""
         try:
             self.engine = create_async_engine(self.database_url, **self.engine_kwargs)
-            self.session_factory = async_sessionmaker(
-                self.engine, class_=AsyncSession, expire_on_commit=False
-            )
+            self.session_factory = async_sessionmaker(self.engine, class_=AsyncSession, expire_on_commit=False)
 
             # Test the connection
             async with self.engine.begin() as conn:
@@ -140,9 +137,7 @@ class DatabaseManager:
         async with self.engine.begin() as conn:
             await conn.run_sync(base.metadata.drop_all)
 
-    async def execute_raw_sql(
-        self, sql: str, parameters: Optional[Dict[str, Any]] = None
-    ) -> Any:
+    async def execute_raw_sql(self, sql: str, parameters: Optional[Dict[str, Any]] = None) -> Any:
         """Execute raw SQL
 
         Args:
@@ -174,11 +169,7 @@ class DatabaseManager:
 
             return {
                 "status": "healthy",
-                "database_url": (
-                    self.database_url.split("@")[-1]
-                    if "@" in self.database_url
-                    else self.database_url
-                ),
+                "database_url": (self.database_url.split("@")[-1] if "@" in self.database_url else self.database_url),
                 "pool_size": self.engine.pool.size(),
                 "checked_out": self.engine.pool.checkedout(),
                 "overflow": self.engine.pool.overflow(),
@@ -243,9 +234,7 @@ class Repository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_all(
-        self, limit: Optional[int] = None, offset: int = 0
-    ) -> list[Base]:
+    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> list[Base]:
         """List all records
 
         Args:
@@ -389,9 +378,7 @@ def get_database_url_from_env() -> str:
     return url
 
 
-async def init_database(
-    database_url: str, create_tables: bool = True
-) -> DatabaseManager:
+async def init_database(database_url: str, create_tables: bool = True) -> DatabaseManager:
     """Initialize database with default configuration
 
     Args:
@@ -410,11 +397,7 @@ async def init_database(
     return db_manager
 
 
-from datetime import datetime
-
 # Example models for reference
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import relationship
 
 
 class ConversationHistory(Base):
@@ -437,11 +420,7 @@ class ConversationHistory(Base):
         """Get conversation by context ID"""
         from sqlalchemy import select
 
-        stmt = (
-            select(cls)
-            .where(cls.context_id == context_id)
-            .order_by(cls.created_at.desc())
-        )
+        stmt = select(cls).where(cls.context_id == context_id).order_by(cls.created_at.desc())
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 

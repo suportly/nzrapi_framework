@@ -134,9 +134,7 @@ class Router:
         for route in router.routes:
             # Adjust the path with the new prefix
             new_path = prefix + route.path
-            new_route = Route(
-                new_path, route.endpoint, methods=route.methods, name=route.name
-            )
+            new_route = Route(new_path, route.endpoint, methods=route.methods, name=route.name)
             self.routes.append(new_route)
 
     def to_starlette_router(self) -> StarletteRouter:

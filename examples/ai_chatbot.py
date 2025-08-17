@@ -77,9 +77,7 @@ class AdvancedChatModel(AIModel):
         self.is_loaded = True
         print(f"✅ Loaded advanced chat model: {self.name}")
 
-    async def predict(
-        self, payload: Dict[str, Any], context: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+    async def predict(self, payload: Dict[str, Any], context: Optional[Dict] = None) -> Dict[str, Any]:
         """Advanced chat prediction with context and personality"""
         if not self.is_loaded:
             raise RuntimeError("Model not loaded")
@@ -108,18 +106,14 @@ class AdvancedChatModel(AIModel):
         )
 
         # Trim conversation if too long
-        if (
-            len(conversation["messages"]) > self.max_context_turns * 2 + 1
-        ):  # +1 for system message
+        if len(conversation["messages"]) > self.max_context_turns * 2 + 1:  # +1 for system message
             # Keep system message and recent turns
             system_msg = conversation["messages"][0]
             recent_msgs = conversation["messages"][-(self.max_context_turns * 2) :]
             conversation["messages"] = [system_msg] + recent_msgs
 
         # Generate response based on personality and context
-        response_text = await self._generate_contextual_response(
-            message, conversation, payload
-        )
+        response_text = await self._generate_contextual_response(message, conversation, payload)
 
         # Add assistant response
         conversation["messages"].append(
@@ -139,9 +133,7 @@ class AdvancedChatModel(AIModel):
             "context_used": len(conversation["messages"]) > 2,
         }
 
-    async def _generate_contextual_response(
-        self, message: str, conversation: dict, payload: dict
-    ) -> str:
+    async def _generate_contextual_response(self, message: str, conversation: dict, payload: dict) -> str:
         """Generate contextual response based on conversation history"""
         message_lower = message.lower()
 
@@ -153,9 +145,7 @@ class AdvancedChatModel(AIModel):
         if self.personality == "friendly":
             greeting_words = ["hi", "hello", "hey", "good morning", "good afternoon"]
             if any(word in message_lower for word in greeting_words):
-                return (
-                    f"Hey there! 😊 Great to chat with you! What's on your mind today?"
-                )
+                return f"Hey there! 😊 Great to chat with you! What's on your mind today?"
 
         elif self.personality == "professional":
             if any(word in message_lower for word in ["hello", "hi"]):
@@ -197,9 +187,7 @@ class AdvancedChatModel(AIModel):
 
         # Contextual continuation
         if context_topics:
-            if "programming" in context_topics and (
-                "help" in message_lower or "how" in message_lower
-            ):
+            if "programming" in context_topics and ("help" in message_lower or "how" in message_lower):
                 return "Based on our conversation about programming, I can provide more specific guidance. Could you share what you're trying to build or what challenge you're facing?"
 
         # Default intelligent response
@@ -262,9 +250,7 @@ router = Router()
 
 # Context manager for conversations
 context_manager = ContextManager(
-    ContextConfig(
-        default_ttl=3600, max_contexts=1000, cleanup_interval=300  # 1 hour  # 5 minutes
-    )
+    ContextConfig(default_ttl=3600, max_contexts=1000, cleanup_interval=300)  # 1 hour  # 5 minutes
 )
 
 
@@ -305,18 +291,13 @@ async def chat(request: Request):
         validated_data = serializer.validated_data
 
         # Generate session ID if not provided
-        session_id = (
-            validated_data.get("session_id")
-            or f"session_{datetime.utcnow().timestamp()}"
-        )
+        session_id = validated_data.get("session_id") or f"session_{datetime.utcnow().timestamp()}"
 
         # Get AI model
         model_name = validated_data["model_name"]
         ai_model = request.app.ai_registry.get_model(model_name)
         if not ai_model:
-            return JSONResponse(
-                {"error": f"Model '{model_name}' not available"}, status_code=503
-            )
+            return JSONResponse({"error": f"Model '{model_name}' not available"}, status_code=503)
 
         # Prepare payload
         payload = {
@@ -330,12 +311,8 @@ async def chat(request: Request):
 
         # Save to database if requested
         if validated_data["save_history"]:
-            await _save_chat_message(
-                request, session_id, "user", validated_data["message"], model_name
-            )
-            await _save_chat_message(
-                request, session_id, "assistant", result["response"], model_name
-            )
+            await _save_chat_message(request, session_id, "user", validated_data["message"], model_name)
+            await _save_chat_message(request, session_id, "assistant", result["response"], model_name)
 
         return {
             "response": result["response"],
@@ -391,9 +368,7 @@ async def create_session(request: Request):
         }
 
     except Exception as e:
-        return JSONResponse(
-            {"error": "Failed to create session", "details": str(e)}, status_code=500
-        )
+        return JSONResponse({"error": "Failed to create session", "details": str(e)}, status_code=500)
 
 
 @router.get("/sessions/{session_id}/history")
@@ -404,11 +379,7 @@ async def get_chat_history(request: Request, session_id: str):
             from sqlalchemy import select
 
             # Get messages
-            stmt = (
-                select(ChatMessage)
-                .where(ChatMessage.session_id == session_id)
-                .order_by(ChatMessage.timestamp)
-            )
+            stmt = select(ChatMessage).where(ChatMessage.session_id == session_id).order_by(ChatMessage.timestamp)
             result = await session.execute(stmt)
             messages = result.scalars().all()
 
@@ -430,9 +401,7 @@ async def get_chat_history(request: Request, session_id: str):
             }
 
     except Exception as e:
-        return JSONResponse(
-            {"error": "Failed to get history", "details": str(e)}, status_code=500
-        )
+        return JSONResponse({"error": "Failed to get history", "details": str(e)}, status_code=500)
 
 
 @router.get("/models/{model_name}/personality")
@@ -441,9 +410,7 @@ async def get_model_personality(request: Request, model_name: str):
     try:
         model = request.app.ai_registry.get_model(model_name)
         if not model:
-            return JSONResponse(
-                {"error": f"Model '{model_name}' not found"}, status_code=404
-            )
+            return JSONResponse({"error": f"Model '{model_name}' not found"}, status_code=404)
 
         info = model.model_info
         stats = model.get_stats()
@@ -457,15 +424,11 @@ async def get_model_personality(request: Request, model_name: str):
         }
 
     except Exception as e:
-        return JSONResponse(
-            {"error": "Failed to get model info", "details": str(e)}, status_code=500
-        )
+        return JSONResponse({"error": "Failed to get model info", "details": str(e)}, status_code=500)
 
 
 # Helper functions
-async def _save_chat_message(
-    request: Request, session_id: str, role: str, content: str, model_name: str
-):
+async def _save_chat_message(request: Request, session_id: str, role: str, content: str, model_name: str):
     """Save chat message to database"""
     try:
         async with request.app.get_db_session() as session:
@@ -586,6 +549,4 @@ if __name__ == "__main__":
     print('    -H "Content-Type: application/json" \\')
     print('    -d \'{"message": "Hello! Tell me about nzrRest framework"}\'')
 
-    uvicorn.run(
-        "ai_chatbot:app", host="0.0.0.0", port=8001, reload=True, log_level="info"
-    )
+    uvicorn.run("ai_chatbot:app", host="0.0.0.0", port=8001, reload=True, log_level="info")

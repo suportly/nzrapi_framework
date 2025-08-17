@@ -71,9 +71,7 @@ class NzrRestApp:
 
         return decorator
 
-    def include_router(
-        self, router: Router, prefix: str = "", tags: Optional[List[str]] = None
-    ):
+    def include_router(self, router: Router, prefix: str = "", tags: Optional[List[str]] = None):
         """Include a router in the application"""
         # Add tags
         if tags:
@@ -173,9 +171,7 @@ class NzrRestApp:
             ).to_starlette_response()
         else:
             # In production, hide exception details
-            return ErrorResponse(
-                message="Internal server error", status_code=500
-            ).to_starlette_response()
+            return ErrorResponse(message="Internal server error", status_code=500).to_starlette_response()
 
     @property
     def app(self) -> Starlette:

@@ -28,15 +28,9 @@ console = Console()
 def new(
     project_name: str = typer.Argument(..., help="Name of the new project"),
     template: str = typer.Option("mcp-server", help="Template to use"),
-    directory: Optional[str] = typer.Option(
-        None, "--dir", "-d", help="Target directory"
-    ),
-    force: bool = typer.Option(
-        False, "--force", "-f", help="Force creation even if directory exists"
-    ),
-    interactive: bool = typer.Option(
-        True, "--interactive/--no-interactive", help="Interactive mode"
-    ),
+    directory: Optional[str] = typer.Option(None, "--dir", "-d", help="Target directory"),
+    force: bool = typer.Option(False, "--force", "-f", help="Force creation even if directory exists"),
+    interactive: bool = typer.Option(True, "--interactive/--no-interactive", help="Interactive mode"),
 ):
     """Create a new nzrRest project from template"""
 
@@ -109,9 +103,7 @@ def run(
 
     # Check if we're in a nzrRest project
     if not _is_nzrrest_project():
-        console.print(
-            "[red]Error: Not a nzrRest project. Run 'nzrrest new' to create one.[/red]"
-        )
+        console.print("[red]Error: Not a nzrRest project. Run 'nzrrest new' to create one.[/red]")
         raise typer.Exit(1)
 
     # Build uvicorn command
@@ -145,14 +137,10 @@ def run(
 
 @app.command()
 def migrate(
-    message: Optional[str] = typer.Option(
-        None, "-m", "--message", help="Migration message"
-    ),
+    message: Optional[str] = typer.Option(None, "-m", "--message", help="Migration message"),
     auto: bool = typer.Option(False, help="Auto-generate migration"),
     upgrade: bool = typer.Option(False, help="Run upgrade after generating"),
-    downgrade: Optional[str] = typer.Option(
-        None, help="Downgrade to specific revision"
-    ),
+    downgrade: Optional[str] = typer.Option(None, help="Downgrade to specific revision"),
 ):
     """Database migration commands"""
 
@@ -191,14 +179,10 @@ def migrate(
 
 @app.command()
 def models(
-    list_models: bool = typer.Option(
-        False, "--list", "-l", help="List available models"
-    ),
+    list_models: bool = typer.Option(False, "--list", "-l", help="List available models"),
     add_model: Optional[str] = typer.Option(None, "--add", help="Add a new model"),
     model_type: Optional[str] = typer.Option(None, "--type", help="Model type"),
-    config_file: Optional[str] = typer.Option(
-        "config.py", help="Config file to update"
-    ),
+    config_file: Optional[str] = typer.Option("config.py", help="Config file to update"),
 ):
     """Manage AI models"""
 
@@ -210,9 +194,7 @@ def models(
         _list_project_models()
     elif add_model:
         if not model_type:
-            model_type = Prompt.ask(
-                "Model type", choices=["openai", "anthropic", "huggingface", "mock"]
-            )
+            model_type = Prompt.ask("Model type", choices=["openai", "anthropic", "huggingface", "mock"])
         _add_model_to_config(add_model, model_type, config_file)
     else:
         console.print("Use --list to see models or --add to add a new model")
@@ -250,16 +232,12 @@ def version():
 def _interactive_project_config(project_name: str, template: str) -> dict:
     """Interactive project configuration"""
 
-    console.print(
-        f"\n[bold blue]Configuring nzrRest project '{project_name}'[/bold blue]"
-    )
+    console.print(f"\n[bold blue]Configuring nzrRest project '{project_name}'[/bold blue]")
 
     config = {
         "project_name": project_name,
         "template": template,
-        "description": Prompt.ask(
-            "Project description", default="AI API built with nzrRest"
-        ),
+        "description": Prompt.ask("Project description", default="AI API built with nzrRest"),
         "author": Prompt.ask("Author name", default="Your Name"),
         "email": Prompt.ask("Author email", default="your.email@example.com"),
         "python_version": Prompt.ask("Python version", default="3.8"),
@@ -271,9 +249,7 @@ def _interactive_project_config(project_name: str, template: str) -> dict:
     if template == "mcp-server":
         config.update(
             {
-                "include_database": Confirm.ask(
-                    "Include database support?", default=True
-                ),
+                "include_database": Confirm.ask("Include database support?", default=True),
                 "include_auth": Confirm.ask("Include authentication?", default=False),
                 "include_cors": Confirm.ask("Include CORS middleware?", default=True),
                 "default_model": Prompt.ask(
@@ -372,12 +348,8 @@ def _init_git_repo(project_dir: Path):
     """Initialize git repository"""
 
     try:
-        subprocess.run(
-            ["git", "init"], check=True, cwd=project_dir, capture_output=True
-        )
-        subprocess.run(
-            ["git", "add", "."], check=True, cwd=project_dir, capture_output=True
-        )
+        subprocess.run(["git", "init"], check=True, cwd=project_dir, capture_output=True)
+        subprocess.run(["git", "add", "."], check=True, cwd=project_dir, capture_output=True)
         subprocess.run(
             ["git", "commit", "-m", "Initial commit: nzrRest project"],
             check=True,
@@ -415,9 +387,7 @@ def _get_project_info() -> dict:
     requirements_file = Path("requirements.txt")
     if requirements_file.exists():
         with open(requirements_file) as f:
-            deps = [
-                line.strip() for line in f if line.strip() and not line.startswith("#")
-            ]
+            deps = [line.strip() for line in f if line.strip() and not line.startswith("#")]
             info["Dependencies"] = len(deps)
 
     # Check git
@@ -462,9 +432,7 @@ def _list_project_models():
 def _add_model_to_config(model_name: str, model_type: str, config_file: str):
     """Add a model to the configuration file"""
 
-    console.print(
-        f"[green]Adding model '{model_name}' of type '{model_type}' to {config_file}[/green]"
-    )
+    console.print(f"[green]Adding model '{model_name}' of type '{model_type}' to {config_file}[/green]")
 
     # This is a simplified implementation
     # In practice, you'd need to parse and modify the Python config file

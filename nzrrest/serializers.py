@@ -116,9 +116,7 @@ class CharField(Field):
 class IntegerField(Field):
     """Integer field"""
 
-    def __init__(
-        self, min_value: Optional[int] = None, max_value: Optional[int] = None, **kwargs
-    ):
+    def __init__(self, min_value: Optional[int] = None, max_value: Optional[int] = None, **kwargs):
         self.min_value = min_value
         self.max_value = max_value
         super().__init__(**kwargs)
@@ -406,19 +404,11 @@ class ModelSerializer(BaseSerializer):
                 field_name = column.name
 
                 # Skip excluded fields
-                if (
-                    hasattr(cls.Meta, "exclude")
-                    and cls.Meta.exclude
-                    and field_name in cls.Meta.exclude
-                ):
+                if hasattr(cls.Meta, "exclude") and cls.Meta.exclude and field_name in cls.Meta.exclude:
                     continue
 
                 # Skip if not in explicit fields list
-                if (
-                    hasattr(cls.Meta, "fields")
-                    and cls.Meta.fields != "__all__"
-                    and field_name not in cls.Meta.fields
-                ):
+                if hasattr(cls.Meta, "fields") and cls.Meta.fields != "__all__" and field_name not in cls.Meta.fields:
                     continue
 
                 # Create field based on column type

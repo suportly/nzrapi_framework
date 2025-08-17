@@ -84,9 +84,7 @@ class ContextManager:
 
                 # If still at capacity, remove oldest context
                 if len(self.contexts) >= self.config.max_contexts:
-                    oldest_id = min(
-                        self.contexts.keys(), key=lambda k: self.contexts[k].created_at
-                    )
+                    oldest_id = min(self.contexts.keys(), key=lambda k: self.contexts[k].created_at)
                     del self.contexts[oldest_id]
                     self.stats["contexts_cleaned"] += 1
 
@@ -182,15 +180,9 @@ class ContextManager:
             if len(context.messages) > self.config.max_message_history:
                 # Keep first message (often system prompt) and recent messages
                 first_message = context.messages[0] if context.messages else None
-                recent_messages = context.messages[
-                    -(self.config.max_message_history - 1) :
-                ]
+                recent_messages = context.messages[-(self.config.max_message_history - 1) :]
 
-                context.messages = (
-                    [first_message] + recent_messages
-                    if first_message
-                    else recent_messages
-                )
+                context.messages = [first_message] + recent_messages if first_message else recent_messages
 
             return True
 
@@ -255,11 +247,7 @@ class ContextManager:
                         "metadata": context.metadata,
                         "ttl": context.ttl,
                         "expires_at": (
-                            (
-                                context.updated_at + timedelta(seconds=context.ttl)
-                            ).isoformat()
-                            if context.ttl
-                            else None
+                            (context.updated_at + timedelta(seconds=context.ttl)).isoformat() if context.ttl else None
                         ),
                     }
                 )

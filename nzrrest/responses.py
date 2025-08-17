@@ -92,9 +92,7 @@ class JSONResponse(Response):
 
     def to_starlette_response(self) -> StarletteJSONResponse:
         """Convert to Starlette JSON response"""
-        return StarletteJSONResponse(
-            content=self.raw_content, status_code=self.status_code, headers=self.headers
-        )
+        return StarletteJSONResponse(content=self.raw_content, status_code=self.status_code, headers=self.headers)
 
 
 class ErrorResponse(JSONResponse):
@@ -108,9 +106,7 @@ class ErrorResponse(JSONResponse):
         details: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
     ):
-        content = {
-            "error": {"message": message, "code": error_code, "details": details or {}}
-        }
+        content = {"error": {"message": message, "code": error_code, "details": details or {}}}
 
         super().__init__(content=content, status_code=status_code, headers=headers)
 

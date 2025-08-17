@@ -45,9 +45,7 @@ class AIModel(ABC):
         pass
 
     @abstractmethod
-    async def predict(
-        self, payload: Dict[str, Any], context: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+    async def predict(self, payload: Dict[str, Any], context: Optional[Dict] = None) -> Dict[str, Any]:
         """Execute prediction with optional context
 
         Args:
@@ -81,9 +79,7 @@ class AIModel(ABC):
         """
         pass
 
-    async def process_request(
-        self, request: MCPRequest, context: Optional[Dict] = None
-    ) -> MCPResponse:
+    async def process_request(self, request: MCPRequest, context: Optional[Dict] = None) -> MCPResponse:
         """Process an MCP request and return response
 
         Args:
@@ -147,9 +143,7 @@ class AIModel(ABC):
 
             # Calculate success rate
             if self.request_count > 0:
-                success_rate = (
-                    (self.request_count - self.error_count) / self.request_count
-                ) * 100
+                success_rate = ((self.request_count - self.error_count) / self.request_count) * 100
             else:
                 success_rate = 100.0
 
@@ -171,8 +165,7 @@ class AIModel(ABC):
                 error_count=self.error_count,
                 details={
                     "request_count": self.request_count,
-                    "avg_execution_time": self.total_execution_time
-                    / max(self.request_count, 1),
+                    "avg_execution_time": self.total_execution_time / max(self.request_count, 1),
                     "last_error": self.last_error,
                     "version": self.version,
                     "provider": self.provider,
@@ -216,12 +209,8 @@ class AIModel(ABC):
             "is_loaded": self.is_loaded,
             "request_count": self.request_count,
             "error_count": self.error_count,
-            "success_rate": (
-                (self.request_count - self.error_count) / max(self.request_count, 1)
-            )
-            * 100,
-            "avg_execution_time": self.total_execution_time
-            / max(self.request_count, 1),
+            "success_rate": ((self.request_count - self.error_count) / max(self.request_count, 1)) * 100,
+            "avg_execution_time": self.total_execution_time / max(self.request_count, 1),
             "last_execution_time": self.last_execution_time,
             "last_error": self.last_error,
             "health_status": self._health_status,
@@ -242,9 +231,7 @@ class MockAIModel(AIModel):
         await asyncio.sleep(0.1)  # Simulate loading time
         self.is_loaded = True
 
-    async def predict(
-        self, payload: Dict[str, Any], context: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+    async def predict(self, payload: Dict[str, Any], context: Optional[Dict] = None) -> Dict[str, Any]:
         """Mock prediction that returns predefined responses"""
         if not self.is_loaded:
             raise RuntimeError("Model not loaded")
@@ -323,9 +310,7 @@ class OpenAIModel(AIModel):
         except Exception as e:
             raise RuntimeError(f"Failed to load OpenAI model: {e}")
 
-    async def predict(
-        self, payload: Dict[str, Any], context: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+    async def predict(self, payload: Dict[str, Any], context: Optional[Dict] = None) -> Dict[str, Any]:
         """Make prediction using OpenAI API"""
         if not self.is_loaded:
             raise RuntimeError("Model not loaded")

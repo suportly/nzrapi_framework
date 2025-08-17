@@ -2,11 +2,12 @@
 Tests for nzrRest application core functionality
 """
 
-import pytest
 import asyncio
 from unittest.mock import AsyncMock, Mock
 
-from nzrrest import NzrRestApp, Router, JSONResponse
+import pytest
+
+from nzrrest import JSONResponse, NzrRestApp, Router
 
 
 @pytest.fixture

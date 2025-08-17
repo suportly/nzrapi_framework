@@ -2,20 +2,21 @@
 Tests for nzrRest serializer system
 """
 
-import pytest
 from datetime import datetime
 
+import pytest
+
+from nzrrest.exceptions import ValidationError
 from nzrrest.serializers import (
     BaseSerializer,
-    ModelSerializer,
-    CharField,
-    IntegerField,
     BooleanField,
+    CharField,
     DateTimeField,
-    ListField,
     DictField,
+    IntegerField,
+    ListField,
+    ModelSerializer,
 )
-from nzrrest.exceptions import ValidationError
 
 
 class TestFields:

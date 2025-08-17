@@ -9,11 +9,11 @@ This example demonstrates the fundamental features of nzrRest framework:
 """
 
 import asyncio
-from nzrrest import NzrRestApp, Router, Request, JSONResponse
-from nzrrest.serializers import BaseSerializer, CharField, IntegerField
-from nzrrest.ai.models import MockAIModel
-from nzrrest.middleware import RequestLoggingMiddleware, RateLimitMiddleware
 
+from nzrrest import JSONResponse, NzrRestApp, Request, Router
+from nzrrest.ai.models import MockAIModel
+from nzrrest.middleware import RateLimitMiddleware, RequestLoggingMiddleware
+from nzrrest.serializers import BaseSerializer, CharField, IntegerField
 
 # Create the application
 app = NzrRestApp(title="Basic nzrRest API", version="1.0.0", debug=True)

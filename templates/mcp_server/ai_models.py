@@ -4,8 +4,8 @@ AI model implementations for {{ project_name }}
 
 import asyncio
 import json
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 from nzrrest.ai.models import AIModel
 

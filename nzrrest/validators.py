@@ -4,7 +4,8 @@ Validation utilities for nzrRest framework
 
 import re
 from typing import Any, Callable, Dict, List, Optional, Union
-from email_validator import validate_email, EmailNotValidError
+
+from email_validator import EmailNotValidError, validate_email
 
 
 class ValidationError(Exception):

@@ -4,20 +4,19 @@ AI model registry for managing multiple models in nzrRest
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Type, Union
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Type, Union
 
+from ..exceptions import ModelNotFoundError
 from .models import AIModel, MockAIModel
 from .protocol import (
-    ModelHealth,
     BatchMCPRequest,
     BatchMCPResponse,
+    MCPError,
     MCPRequest,
     MCPResponse,
-    MCPError,
+    ModelHealth,
 )
-from ..exceptions import ModelNotFoundError
-
 
 logger = logging.getLogger(__name__)
 

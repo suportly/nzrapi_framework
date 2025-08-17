@@ -4,19 +4,19 @@ Middleware system for nzrRest framework
 
 import asyncio
 import json
-import time
 import logging
-from typing import Any, Callable, Dict, List, Optional, Set
-from datetime import datetime, timedelta
+import time
 from collections import defaultdict, deque
+from datetime import datetime, timedelta
+from typing import Any, Callable, Dict, List, Optional, Set
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.responses import Response, JSONResponse
+from starlette.responses import JSONResponse, Response
 
-from .exceptions import RateLimitError, AuthenticationError
+from .exceptions import AuthenticationError, RateLimitError
 from .responses import ErrorResponse
-
 
 logger = logging.getLogger(__name__)
 
@@ -257,7 +257,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
     async def _authenticate_jwt(self, token: str) -> Optional[Dict[str, Any]]:
         """Authenticate using JWT token"""
         try:
-            from jose import jwt, JWTError
+            from jose import JWTError, jwt
 
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
             user_id = payload.get("sub")

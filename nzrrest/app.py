@@ -10,11 +10,11 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.responses import JSONResponse as StarletteJSONResponse
 
-from .routing import Router
-from .db import DatabaseManager
 from .ai.registry import AIRegistry
+from .db import DatabaseManager
 from .exceptions import NzrRestException
 from .responses import ErrorResponse
+from .routing import Router
 
 
 class NzrRestApp:

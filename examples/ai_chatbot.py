@@ -12,19 +12,19 @@ This example demonstrates:
 import asyncio
 import json
 from datetime import datetime
-from typing import Dict, Any, Optional
-
-from nzrrest import NzrRestApp, Router, Request, JSONResponse
-from nzrrest.serializers import BaseSerializer, CharField, BooleanField
-from nzrrest.ai.models import AIModel
-from nzrrest.ai.protocol import MCPRequest, MCPResponse
-from nzrrest.ai.context import ContextManager, ContextConfig
-from nzrrest.middleware import RequestLoggingMiddleware, CORSMiddleware
-from nzrrest.db import Base, init_database
+from typing import Any, Dict, Optional
 
 # Database models
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from nzrrest import JSONResponse, NzrRestApp, Request, Router
+from nzrrest.ai.context import ContextConfig, ContextManager
+from nzrrest.ai.models import AIModel
+from nzrrest.ai.protocol import MCPRequest, MCPResponse
+from nzrrest.db import Base, init_database
+from nzrrest.middleware import CORSMiddleware, RequestLoggingMiddleware
+from nzrrest.serializers import BaseSerializer, BooleanField, CharField
 
 
 class ChatMessage(Base):

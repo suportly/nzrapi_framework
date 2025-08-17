@@ -3,18 +3,17 @@
 """
 
 import uvicorn
+from config import settings
+from models import Base
+from views import router as api_router
+
 from nzrrest import NzrRestApp
 from nzrrest.middleware import (
-    RequestLoggingMiddleware,
-    RateLimitMiddleware,
     ErrorHandlingMiddleware,
     MetricsMiddleware,
+    RateLimitMiddleware,
+    RequestLoggingMiddleware,
 )
-
-from config import settings
-from views import router as api_router
-from models import Base
-
 
 # Create nzrRest application
 app = NzrRestApp(

@@ -2,14 +2,15 @@
 Tests for AI models and MCP protocol
 """
 
-import pytest
 import asyncio
 from unittest.mock import AsyncMock, Mock
 
+import pytest
+
+from nzrrest.ai.context import ContextConfig, ContextManager
 from nzrrest.ai.models import AIModel, MockAIModel
+from nzrrest.ai.protocol import ContextData, MCPRequest, MCPResponse
 from nzrrest.ai.registry import AIRegistry
-from nzrrest.ai.protocol import MCPRequest, MCPResponse, ContextData
-from nzrrest.ai.context import ContextManager, ContextConfig
 
 
 class TestMockAIModel:

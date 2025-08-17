@@ -7,15 +7,15 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Dict, Optional, Type
 
 from sqlalchemy import MetaData, create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import declarative_base, DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, declarative_base
 from sqlalchemy.pool import StaticPool
-from sqlalchemy.exc import SQLAlchemyError
 
 from .exceptions import NzrRestException
 
@@ -297,7 +297,7 @@ class Repository:
         Returns:
             Total number of records
         """
-        from sqlalchemy import select, func
+        from sqlalchemy import func, select
 
         stmt = select(func.count(self.model_class.id))
         result = await self.session.execute(stmt)
@@ -410,10 +410,11 @@ async def init_database(
     return db_manager
 
 
-# Example models for reference
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+# Example models for reference
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
 
 
 class ConversationHistory(Base):

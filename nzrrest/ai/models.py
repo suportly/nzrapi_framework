@@ -5,8 +5,8 @@ Abstract AI model classes for nzrRest framework
 import asyncio
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 from .protocol import MCPRequest, MCPResponse, ModelHealth
 

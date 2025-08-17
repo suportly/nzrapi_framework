@@ -5,12 +5,14 @@ Advanced routing system for nzrRest framework
 import asyncio
 import inspect
 from typing import Any, Callable, Dict, List, Optional, Union
-from starlette.routing import Route, Router as StarletteRouter
-from starlette.responses import Response as StarletteResponse
 
-from .requests import Request
-from .responses import Response, JSONResponse, ErrorResponse
+from starlette.responses import Response as StarletteResponse
+from starlette.routing import Route
+from starlette.routing import Router as StarletteRouter
+
 from .exceptions import NzrRestException
+from .requests import Request
+from .responses import ErrorResponse, JSONResponse, Response
 
 
 class Router:

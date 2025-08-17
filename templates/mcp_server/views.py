@@ -4,17 +4,16 @@ API endpoints for {{ project_name }}
 
 import json
 import uuid
-from typing import Optional
 from datetime import datetime
+from typing import Optional
 
-from nzrrest import Router, Request, JSONResponse
-from nzrrest.ai.protocol import MCPRequest, MCPResponse, MCPError
+from config import settings
+from models import ConversationHistory, ModelUsageStats
+
+from nzrrest import JSONResponse, Request, Router
+from nzrrest.ai.protocol import MCPError, MCPRequest, MCPResponse
 from nzrrest.exceptions import ModelNotFoundError, ValidationError
 from nzrrest.serializers import BaseSerializer, CharField, DictField
-
-from models import ConversationHistory, ModelUsageStats
-from config import settings
-
 
 router = Router()
 

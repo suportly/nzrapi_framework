@@ -4,10 +4,9 @@ Response classes for nzrRest framework
 
 import json
 from typing import Any, Dict, Optional, Union
-from starlette.responses import (
-    Response as StarletteResponse,
-    JSONResponse as StarletteJSONResponse,
-)
+
+from starlette.responses import JSONResponse as StarletteJSONResponse
+from starlette.responses import Response as StarletteResponse
 
 
 class Response:

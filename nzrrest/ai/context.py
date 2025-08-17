@@ -4,9 +4,9 @@ Context management for AI conversations and stateful interactions
 
 import asyncio
 import json
-from typing import Any, Dict, List, Optional
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from dataclasses import dataclass, asdict
+from typing import Any, Dict, List, Optional
 
 from .protocol import ContextData
 

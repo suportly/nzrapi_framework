@@ -2,9 +2,11 @@
 Database models for {{ project_name }}
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Float
-from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from nzrrest.db import Base
 
 
@@ -57,8 +59,9 @@ class ModelUsageStats(Base):
     @classmethod
     async def get_stats_by_model(cls, session: AsyncSession, model_name: str, days: int = 7):
         """Get usage statistics for a model over the last N days"""
-        from sqlalchemy import select, func
         from datetime import timedelta
+
+        from sqlalchemy import func, select
         
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         stmt = (

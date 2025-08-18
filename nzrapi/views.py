@@ -155,7 +155,7 @@ class ListModelMixin:
         filter_kwargs, ordering_args, filter_expressions = self.filter_queryset(self.filter_backends)
 
         if self.pagination_class:
-            paginator = self.pagination_class(request)
+            paginator = self.pagination_class(request._request)
             results = await repository.find(
                 filters=filter_kwargs,
                 filter_expressions=filter_expressions,

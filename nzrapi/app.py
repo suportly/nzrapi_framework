@@ -61,7 +61,7 @@ class NzrApiApp:
         database_url: Optional[str] = None,
         debug: bool = False,
         title: str = "NzrApi API",
-        version: str = "0.2.0",
+        version: str = "0.2.1",
         docs_url: Optional[str] = "/docs",
         docs_openapi_url: Optional[str] = "/openapi.json",
         middleware: Optional[List[Middleware]] = None,

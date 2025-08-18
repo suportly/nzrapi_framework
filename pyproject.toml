@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nzrapi"
-version = "0.2.0"
+version = "0.2.1"
 description = "Modern async Python framework for AI APIs with native Model Context Protocol (MCP) support"
 authors = [
     {name = "NzrApi Team", email = "alairjt@gmail.com"},

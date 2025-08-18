@@ -1,4 +1,4 @@
-from typing import Any, Callable, Type
+from typing import Any, Callable, Type, Union
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request as StarletteRequest
@@ -150,14 +150,17 @@ class ListModelMixin:
         return filter_kwargs, ordering_args, filter_expressions
 
     @transactional
-    async def get(self, request: Request, session: AsyncSession = None, **kwargs):
+    async def get(self, request: Union[Request, StarletteRequest], session: AsyncSession = None, **kwargs):
         repository = self.get_repository(session)
         filter_kwargs, ordering_args, filter_expressions = self.filter_queryset(self.filter_backends)
 
         if self.pagination_class:
-            # Handle both nzrapi.requests.Request and starlette.requests.Request
-            starlette_request = request._request if hasattr(request, "_request") else request
-            paginator = self.pagination_class(starlette_request)
+            if isinstance(request, Request):
+                starlette_req = request._request
+            else:
+                starlette_req = request
+
+            paginator = self.pagination_class(starlette_req)
             results = await repository.find(
                 filters=filter_kwargs,
                 filter_expressions=filter_expressions,

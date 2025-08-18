@@ -71,6 +71,29 @@ validate_version() {
     fi
 }
 
+# Function to load environment variables and configure Twine
+configure_pypi_auth() {
+    print_status "Configuring PyPI authentication..."
+    if [ -f ".env" ]; then
+        print_status "Found .env file, loading variables..."
+        # Export variables from .env file, ignoring comments
+        set -o allexport
+        source .env
+        set +o allexport
+    else
+        print_warning ".env file not found. Make sure PYPI_API_TOKEN is set in your environment."
+    fi
+
+    if [ -z "$PYPI_API_TOKEN" ]; then
+        print_error "PYPI_API_TOKEN is not set. Cannot publish."
+        exit 1
+    fi
+
+    export TWINE_USERNAME="__token__"
+    export TWINE_PASSWORD="$PYPI_API_TOKEN"
+    print_success "PyPI authentication configured."
+}
+
 # Main script starts here
 main() {
     print_status "🚀 Starting NzrApi Framework publication process..."
@@ -240,6 +263,9 @@ main() {
     print_status "Package contents:"
     ls -la dist/
     
+    # Configure authentication before asking for confirmation
+    configure_pypi_auth
+
     # Confirm publication
     if [ "$PUBLISH_TYPE" = "production" ]; then
         print_warning "⚠️  You are about to publish to PRODUCTION PyPI!"

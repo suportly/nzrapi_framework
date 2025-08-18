@@ -155,7 +155,9 @@ class ListModelMixin:
         filter_kwargs, ordering_args, filter_expressions = self.filter_queryset(self.filter_backends)
 
         if self.pagination_class:
-            paginator = self.pagination_class(request._request)
+            # Handle both nzrapi.requests.Request and starlette.requests.Request
+            starlette_request = request._request if hasattr(request, "_request") else request
+            paginator = self.pagination_class(starlette_request)
             results = await repository.find(
                 filters=filter_kwargs,
                 filter_expressions=filter_expressions,

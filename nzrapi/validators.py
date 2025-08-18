@@ -1,5 +1,5 @@
 """
-Validation utilities for nzrRest framework
+Validation utilities for NzrApi framework
 """
 
 import re

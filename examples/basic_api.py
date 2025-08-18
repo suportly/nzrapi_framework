@@ -1,7 +1,7 @@
 """
-Basic nzrRest API Example
+Basic NzrApi API Example
 
-This example demonstrates the fundamental features of nzrRest framework:
+This example demonstrates the fundamental features of NzrApi framework:
 - Creating an application
 - Adding routes
 - Using serializers
@@ -10,13 +10,13 @@ This example demonstrates the fundamental features of nzrRest framework:
 
 import asyncio
 
-from nzrrest import JSONResponse, NzrRestApp, Request, Router
-from nzrrest.ai.models import MockAIModel
-from nzrrest.middleware import RateLimitMiddleware, RequestLoggingMiddleware
-from nzrrest.serializers import BaseSerializer, CharField, IntegerField
+from nzrapi import JSONResponse, NzrApiApp, Request, Router
+from nzrapi.ai.models import MockAIModel
+from nzrapi.middleware import RateLimitMiddleware, RequestLoggingMiddleware
+from nzrapi.serializers import BaseSerializer, CharField, IntegerField
 
 # Create the application
-app = NzrRestApp(title="Basic nzrRest API", version="1.0.0", debug=True)
+app = NzrApiApp(title="Basic NzrApi API", version="1.0.0", debug=True)
 
 # Add middleware
 app.add_middleware(RequestLoggingMiddleware, log_level="INFO")
@@ -47,8 +47,8 @@ class MessageSerializer(BaseSerializer):
 async def root():
     """Root endpoint"""
     return {
-        "message": "Welcome to nzrRest Basic API",
-        "framework": "nzrRest",
+        "message": "Welcome to NzrApi Basic API",
+        "framework": "NzrApi",
         "version": "1.0.0",
     }
 
@@ -56,7 +56,7 @@ async def root():
 @router.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "framework": "nzrRest"}
+    return {"status": "healthy", "framework": "NzrApi"}
 
 
 @router.post("/users")
@@ -108,7 +108,7 @@ async def chat_with_ai(request: Request):
             )
 
         # Get AI model from registry
-        ai_model = request.app.ai_registry.get_model("basic_chat")
+        ai_model = request.app.state.nzrapi_app.ai_registry.get_model("basic_chat")
         if not ai_model:
             return JSONResponse({"error": "AI model not available"}, status_code=503)
 
@@ -133,7 +133,7 @@ async def chat_with_ai(request: Request):
 @router.get("/models")
 async def list_models(request: Request):
     """List available AI models"""
-    models = request.app.ai_registry.list_models()
+    models = request.app.state.nzrapi_app.ai_registry.list_models()
     return {"models": models}
 
 
@@ -145,7 +145,7 @@ app.include_router(router)
 @app.on_startup
 async def startup():
     """Initialize the application"""
-    print("🚀 Starting Basic nzrRest API...")
+    print("🚀 Starting Basic NzrApi API...")
 
     # Add a basic chat model
     await app.ai_registry.add_model(
@@ -156,7 +156,7 @@ async def startup():
             "version": "1.0.0",
             "provider": "mock",
             "mock_responses": {
-                "hello": "Hello! I'm a basic AI assistant built with nzrRest.",
+                "hello": "Hello! I'm a basic AI assistant built with NzrApi.",
                 "how are you": "I'm functioning well! How can I help you today?",
                 "bye": "Goodbye! Have a great day!",
             },
@@ -174,13 +174,13 @@ async def startup():
 @app.on_shutdown
 async def shutdown():
     """Cleanup on shutdown"""
-    print("🛑 Shutting down Basic nzrRest API...")
+    print("🛑 Shutting down Basic NzrApi API...")
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    print("Starting nzrRest Basic API Example...")
+    print("Starting NzrApi Basic API Example...")
     print("Visit http://localhost:8000 to try the API")
     print("Example requests:")
     print("  GET  /health")
@@ -188,4 +188,4 @@ if __name__ == "__main__":
     print("  POST /chat")
     print("  GET  /models")
 
-    uvicorn.run("basic_api:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    uvicorn.run("basic_api:app", host="0.0.0.0", port=8002, reload=True, log_level="info")

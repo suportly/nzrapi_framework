@@ -1,18 +1,21 @@
 """
-Abstract AI model classes for nzrRest framework
+Abstract AI model classes for NzrApi framework
 """
 
 import asyncio
+import logging
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
+from openai import AsyncOpenAI
+
 from .protocol import MCPRequest, MCPResponse, ModelHealth
 
 
 class AIModel(ABC):
-    """Abstract base class for AI models in nzrRest"""
+    """Abstract base class for AI models in NzrApi"""
 
     def __init__(self, config: Dict[str, Any]):
         """Initialize the AI model with configuration
@@ -294,46 +297,69 @@ class MockAIModel(AIModel):
 
 
 class OpenAIModel(AIModel):
-    """Example OpenAI model implementation"""
+    """AI Model for interacting with OpenAI's API"""
 
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.api_key = config.get("api_key")
-        self.model_id = config.get("model_id", "gpt-3.5-turbo")
-        self.client = None
+        self.model_id = config.get("model_id", "gpt-4o-mini")
+        self.client: Optional[AsyncOpenAI] = None
 
     async def load_model(self) -> None:
         """Initialize OpenAI client"""
-        try:
-            # Note: This is a skeleton - you'd need to install openai package
-            # import openai
-            # self.client = openai.AsyncOpenAI(api_key=self.api_key)
+        if not self.api_key:
+            import os
+            self.api_key = os.getenv("OPENAI_API_KEY")
+        
+        if not self.api_key:
+            raise RuntimeError("OpenAI API key is not configured. Set it in the model config or as an environment variable OPENAI_API_KEY.")
 
-            # For now, just set loaded status
+        try:
+            self.client = AsyncOpenAI(api_key=self.api_key)
             self.is_loaded = True
         except Exception as e:
             raise RuntimeError(f"Failed to load OpenAI model: {e}")
 
     async def predict(self, payload: Dict[str, Any], context: Optional[Dict] = None) -> Dict[str, Any]:
         """Make prediction using OpenAI API"""
-        if not self.is_loaded:
+        if not self.is_loaded or not self.client:
             raise RuntimeError("Model not loaded")
 
-        # This is a skeleton implementation
-        # In practice, you'd call the OpenAI API here
+        prompt = payload.get("prompt")
+        if not prompt:
+            if payload.get("test") or payload.get("warmup"):
+                return {"status": "test/warmup successful"}
+            raise ValueError("Payload must contain a 'prompt' field.")
 
-        prompt = payload.get("prompt", "")
-        max_tokens = payload.get("max_tokens", 100)
+        max_tokens = payload.get("max_tokens", 2000)
+        temperature = payload.get("temperature", 0.7)
 
-        # Simulate API call
-        await asyncio.sleep(0.5)
+        try:
+            logging.info(f"Sending request to OpenAI with model {self.model_id}...")
+            response = await self.client.chat.completions.create(
+                model=self.model_id,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+            logging.info(f"Received raw response from OpenAI: {response}")
 
-        return {
-            "response": f"OpenAI response to: {prompt}",
-            "model": self.model_id,
-            "tokens_used": len(prompt.split()) + 20,
-            "finish_reason": "stop",
-        }
+            content = response.choices[0].message.content
+            usage = response.usage
+            logging.info(f"Extracted content: {content}")
+
+            return {
+                "response": content,  # Key changed from 'content' to 'response'
+                "usage": {
+                    "prompt_tokens": usage.prompt_tokens if usage else 0,
+                    "completion_tokens": usage.completion_tokens if usage else 0,
+                    "total_tokens": usage.total_tokens if usage else 0,
+                },
+                "raw_response": response.model_dump(mode="json"),
+            }
+        except Exception as e:
+            logging.error(f"OpenAI API call failed: {e}", exc_info=True)
+            raise RuntimeError(f"OpenAI API call failed: {e}")
 
     async def unload_model(self) -> None:
         """Clean up OpenAI client"""

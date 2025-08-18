@@ -1,5 +1,5 @@
 """
-AI model registry for managing multiple models in nzrRest
+AI model registry for managing multiple models in NzrApi
 """
 
 import asyncio
@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, Union
 
 from ..exceptions import ModelNotFoundError
-from .models import AIModel, MockAIModel
+from .models import AIModel, MockAIModel, OpenAIModel
 from .protocol import (
     BatchMCPRequest,
     BatchMCPResponse,
@@ -43,6 +43,7 @@ class AIRegistry:
 
             # Register default model types
             self.register_model_class("mock", MockAIModel)
+            self.register_model_class("openai", OpenAIModel)
 
             AIRegistry._initialized = True
 
@@ -164,8 +165,13 @@ class AIRegistry:
                 # Auto-load if specified
                 if model_config.get("auto_load", False):
                     model = self.models[name]
-                    await model.load_model()
-                    logger.info(f"Auto-loaded model '{name}'")
+                    try:
+                        await model.load_model()
+                        logger.info(f"Auto-loaded model '{name}'")
+                    except Exception as load_error:
+                        logger.error(f"Failed to auto-load model '{name}': {load_error}")
+                        # Remove the model if loading failed to prevent using a non-functional model
+                        await self.remove_model(name)
 
             except Exception as e:
                 logger.error(f"Failed to load model from config: {e}")

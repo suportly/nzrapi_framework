@@ -55,7 +55,7 @@ cover/
 *.mo
 *.pot
 
-# nzrRest stuff:
+# NzrApi stuff:
 *.log
 local_settings.py
 db.sqlite3
@@ -192,8 +192,8 @@ Thumbs.db
 # Docker
 .dockerignore
 
-# nzrRest specific
-.nzrrest/
-nzrrest_cache/
+# NzrApi specific
+.nzrapi/
+nzrapi_cache/
 models_cache/
 context_cache/

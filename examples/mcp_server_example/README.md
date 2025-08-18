@@ -1,6 +1,6 @@
-# {{ project_name }}
+# mcp_server_example
 
-{{ description }}
+
 
 This project is built with the **NzrApi Framework** - a modern Python framework for building AI APIs with native Model Context Protocol (MCP) support.
 
@@ -33,14 +33,14 @@ Update `config.py` with your settings:
 
 ```python
 # Database configuration
-DATABASE_URL = "sqlite+aiosqlite:///./{{ project_name }}.db"
+DATABASE_URL = "sqlite+aiosqlite:///./mcp_server_example.db"
 
 # AI model configuration  
 AI_MODELS_CONFIG = {
     "models": [
         {
-            "name": "{{ default_model }}",
-            "type": "{{ default_model }}",
+            "name": "mock",
+            "type": "mock",
             "auto_load": True,
             "config": {
                 # Add your model configuration here
@@ -91,7 +91,7 @@ POST /api/v1/mcp/{model_name}/predict
 {
   "request_id": "req_123",
   "context_id": "ctx_456", 
-  "model_name": "{{ default_model }}",
+  "model_name": "mock",
   "result": {
     "response": "Hello! I'm doing well, thank you for asking."
   },
@@ -109,7 +109,7 @@ POST /api/v1/chat
 {
   "message": "Hello!",
   "context_id": "optional",
-  "model_name": "{{ default_model }}"
+  "model_name": "mock"
 }
 ```
 
@@ -151,12 +151,12 @@ This API is designed for seamless integration with n8n workflows:
       "name": "AI Chat",
       "type": "n8n-nodes-base.httpRequest",
       "parameters": {
-        "url": "http://your-api.com/api/v1/mcp/{{ default_model }}/predict",
+        "url": "http://your-api.com/api/v1/mcp/mock/predict",
         "method": "POST",
         "body": {
-          "context_id": "{{ "{{" }} $('previous').first().json.context_id {{ "}}" }}",
+          "context_id": "{{ $('previous').first().json.context_id }}",
           "payload": {
-            "message": "{{ "{{" }} $json.user_message {{ "}}" }}"
+            "message": "{{ $json.user_message }}"
           }
         }
       }
@@ -182,10 +182,10 @@ nzrapi migrate --downgrade -1
 
 ```bash
 # Build image
-docker build -t {{ project_name }} .
+docker build -t mcp_server_example .
 
 # Run container
-docker run -p 8000:8000 -e DATABASE_URL="your-db-url" {{ project_name }}
+docker run -p 8000:8000 -e DATABASE_URL="your-db-url" mcp_server_example
 
 # Docker Compose (recommended)
 docker-compose up -d
@@ -201,11 +201,7 @@ docker-compose up -d
 | `PORT` | Server port | `8000` |
 | `RATE_LIMIT_PER_MINUTE` | Rate limit per minute | `60` |
 | `RATE_LIMIT_PER_HOUR` | Rate limit per hour | `1000` |
-{% if include_auth %}
-| `SECRET_KEY` | JWT secret key | Required for auth |
-| `OPENAI_API_KEY` | OpenAI API key | Required for OpenAI models |
-| `ANTHROPIC_API_KEY` | Anthropic API key | Required for Claude models |
-{% endif %}
+
 
 ## Model Types
 

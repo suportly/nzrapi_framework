@@ -1,12 +1,17 @@
 """
-CLI tool for nzrRest framework using Typer
+CLI tool for nzrApi framework using Typer
 """
 
 import os
+import importlib
+import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
+
+import jinja2
 
 import typer
 from rich.console import Console
@@ -17,8 +22,8 @@ from rich.syntax import Syntax
 from rich.table import Table
 
 app = typer.Typer(
-    name="nzrrest",
-    help="nzrRest Framework CLI - Build AI APIs with MCP support",
+    name="nzrapi",
+    help="nzrApi Framework CLI - Build AI APIs with MCP support",
     rich_markup_mode="rich",
 )
 console = Console()
@@ -27,12 +32,12 @@ console = Console()
 @app.command()
 def new(
     project_name: str = typer.Argument(..., help="Name of the new project"),
-    template: str = typer.Option("mcp-server", help="Template to use"),
+    template: str = typer.Option("mcp_server", help="Template to use"),
     directory: Optional[str] = typer.Option(None, "--dir", "-d", help="Target directory"),
     force: bool = typer.Option(False, "--force", "-f", help="Force creation even if directory exists"),
     interactive: bool = typer.Option(True, "--interactive/--no-interactive", help="Interactive mode"),
 ):
-    """Create a new nzrRest project from template"""
+    """Create a new nzrApi project from template"""
 
     # Determine target directory
     if directory:
@@ -60,7 +65,15 @@ def new(
     ) as progress:
         task = progress.add_task("Creating project...", total=None)
 
-        _create_project_from_template(target_dir, template, config)
+        # Prepare context for template rendering
+        context = {
+            "project_name": project_name,
+            "include_auth": config.get("include_auth", False),
+            "include_cors": config.get("include_cors", False),
+            "default_model": config.get("default_model", "mock"),
+        }
+
+        _create_project_from_template(target_dir, template, context, config)
 
         progress.update(task, description="Installing dependencies...")
         _install_dependencies(target_dir, config.get("install_deps", True))
@@ -79,10 +92,10 @@ def new(
 
 Next steps:
 1. cd {project_name}
-2. nzrrest run --reload
+2. nzrapi run --reload
 3. Visit http://localhost:8000/health
 
-Documentation: https://nzrrest.readthedocs.io
+Documentation: https://nzrapi.readthedocs.io
         """,
             title="Success",
             border_style="green",
@@ -99,11 +112,11 @@ def run(
     log_level: str = typer.Option("info", help="Log level"),
     config_file: Optional[str] = typer.Option(None, help="Config file path"),
 ):
-    """Run the nzrRest development server"""
+    """Run the nzrApi development server"""
 
-    # Check if we're in a nzrRest project
-    if not _is_nzrrest_project():
-        console.print("[red]Error: Not a nzrRest project. Run 'nzrrest new' to create one.[/red]")
+    # Check if we're in a nzrApi project
+    if not _is_nzrapi_project():
+        console.print("[red]Error: Not a nzrApi project. Run 'nzrapi new' to create one.[/red]")
         raise typer.Exit(1)
 
     # Build uvicorn command
@@ -124,7 +137,7 @@ def run(
     if workers > 1 and not reload:
         cmd.extend(["--workers", str(workers)])
 
-    console.print(f"[green]Starting nzrRest server on {host}:{port}[/green]")
+    console.print(f"[green]Starting nzrApi server on {host}:{port}[/green]")
 
     try:
         subprocess.run(cmd, check=True)
@@ -144,8 +157,8 @@ def migrate(
 ):
     """Database migration commands"""
 
-    if not _is_nzrrest_project():
-        console.print("[red]Error: Not a nzrRest project.[/red]")
+    if not _is_nzrapi_project():
+        console.print("[red]Error: Not a nzrApi project.[/red]")
         raise typer.Exit(1)
 
     if downgrade:
@@ -186,8 +199,8 @@ def models(
 ):
     """Manage AI models"""
 
-    if not _is_nzrrest_project():
-        console.print("[red]Error: Not a nzrRest project.[/red]")
+    if not _is_nzrapi_project():
+        console.print("[red]Error: Not a nzrApi project.[/red]")
         raise typer.Exit(1)
 
     if list_models:
@@ -204,8 +217,8 @@ def models(
 def info():
     """Show project information"""
 
-    if not _is_nzrrest_project():
-        console.print("[red]Error: Not a nzrRest project.[/red]")
+    if not _is_nzrapi_project():
+        console.print("[red]Error: Not a nzrApi project.[/red]")
         raise typer.Exit(1)
 
     # Read project info
@@ -223,21 +236,77 @@ def info():
 
 @app.command()
 def version():
-    """Show nzrRest version"""
+    """Show nzrApi version"""
     from . import __version__
 
-    console.print(f"nzrRest Framework v{__version__}")
+    console.print(f"nzrApi Framework v{__version__}")
+
+
+@app.command()
+def docs(
+    output: str = typer.Option(
+        "openapi.json",
+        "--output",
+        "-o",
+        help="Output file for the OpenAPI schema",
+    ),
+):
+    """Generate the OpenAPI documentation file."""
+    console.print(f"[cyan]Generating OpenAPI schema to {output}...[/cyan]")
+
+    if not _is_nzrapi_project():
+        console.print("[red]Error: This command must be run inside a nzrApi project.[/red]")
+        raise typer.Exit(1)
+
+    try:
+        # Add the current directory to the path to find main.py
+        sys.path.insert(0, str(Path.cwd()))
+
+        # Dynamically import the app from main.py
+        main_module = importlib.import_module("main")
+        app_instance = getattr(main_module, "app", None)
+
+        if not app_instance or not hasattr(app_instance, "openapi"):
+            console.print("[red]Error: Could not find a valid nzrApi 'app' instance in main.py.[/red]")
+            raise typer.Exit(1)
+
+        # Generate the OpenAPI schema
+        openapi_schema = app_instance.openapi()
+
+        # Write the schema to the output file
+        output_path = Path(output)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(openapi_schema, f, indent=2)
+
+        console.print(
+            Panel(
+                f"✅ OpenAPI schema saved to [bold green]{output_path}[/bold green]",
+                title="Success",
+                border_style="green",
+            )
+        )
+
+    except ImportError:
+        console.print("[red]Error: Failed to import 'main.py'. Make sure it exists and is accessible.[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]An unexpected error occurred: {e}[/red]")
+        raise typer.Exit(1)
+    finally:
+        # Clean up sys.path
+        if str(Path.cwd()) in sys.path:
+            sys.path.remove(str(Path.cwd()))
 
 
 def _interactive_project_config(project_name: str, template: str) -> dict:
     """Interactive project configuration"""
 
-    console.print(f"\n[bold blue]Configuring nzrRest project '{project_name}'[/bold blue]")
+    console.print(f"\n[bold blue]Configuring nzrApi project '{project_name}'[/bold blue]")
 
     config = {
         "project_name": project_name,
         "template": template,
-        "description": Prompt.ask("Project description", default="AI API built with nzrRest"),
+        "description": Prompt.ask("Project description", default="AI API built with nzrApi"),
         "author": Prompt.ask("Author name", default="Your Name"),
         "email": Prompt.ask("Author email", default="your.email@example.com"),
         "python_version": Prompt.ask("Python version", default="3.8"),
@@ -246,7 +315,7 @@ def _interactive_project_config(project_name: str, template: str) -> dict:
     }
 
     # Template-specific configuration
-    if template == "mcp-server":
+    if template == "mcp_server":
         config.update(
             {
                 "include_database": Confirm.ask("Include database support?", default=True),
@@ -268,7 +337,7 @@ def _default_project_config(project_name: str, template: str) -> dict:
     return {
         "project_name": project_name,
         "template": template,
-        "description": "AI API built with nzrRest",
+        "description": "AI API built with nzrApi",
         "author": "Your Name",
         "email": "your.email@example.com",
         "python_version": "3.8",
@@ -281,7 +350,7 @@ def _default_project_config(project_name: str, template: str) -> dict:
     }
 
 
-def _create_project_from_template(target_dir: Path, template: str, config: dict):
+def _create_project_from_template(target_dir: Path, template: str, context: dict, config: dict):
     """Create project from template"""
 
     # Get template directory
@@ -306,24 +375,22 @@ def _create_project_from_template(target_dir: Path, template: str, config: dict)
 
             # Process template files
             if item.suffix in [".py", ".txt", ".md", ".toml", ".yaml", ".yml"]:
-                _process_template_file(item, target_file, config)
+                _process_template_file(item, target_file, context)
             else:
                 shutil.copy2(item, target_file)
 
 
-def _process_template_file(source: Path, target: Path, config: dict):
-    """Process template file with variable substitution"""
-
-    with open(source, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    # Simple template variable substitution
-    for key, value in config.items():
-        placeholder = f"{{{{ {key} }}}}"
-        content = content.replace(placeholder, str(value))
-
-    with open(target, "w", encoding="utf-8") as f:
-        f.write(content)
+def _process_template_file(source: Path, target: Path, context: dict):
+    """Process a template file using Jinja2."""
+    try:
+        template_str = source.read_text(encoding="utf-8")
+        template = jinja2.Template(template_str)
+        rendered_content = template.render(context)
+        target.write_text(rendered_content, encoding="utf-8")
+    except Exception as e:
+        console.print(f"[red]Error processing template {source}: {e}[/red]")
+        # Fallback to simple copy if template processing fails
+        shutil.copy2(source, target)
 
 
 def _install_dependencies(project_dir: Path, install: bool):
@@ -336,9 +403,11 @@ def _install_dependencies(project_dir: Path, install: bool):
     if requirements_file.exists():
         try:
             subprocess.run(
-                ["pip", "install", "-r", str(requirements_file)],
+                ["pip", "install", "-r", "requirements.txt"],
                 check=True,
                 cwd=project_dir,
+                capture_output=True,  # Capture output to hide it unless there's an error
+                text=True,
             )
         except subprocess.CalledProcessError:
             console.print("[yellow]Warning: Failed to install dependencies[/yellow]")
@@ -351,7 +420,7 @@ def _init_git_repo(project_dir: Path):
         subprocess.run(["git", "init"], check=True, cwd=project_dir, capture_output=True)
         subprocess.run(["git", "add", "."], check=True, cwd=project_dir, capture_output=True)
         subprocess.run(
-            ["git", "commit", "-m", "Initial commit: nzrRest project"],
+            ["git", "commit", "-m", "Initial commit: nzrApi project"],
             check=True,
             cwd=project_dir,
             capture_output=True,
@@ -360,8 +429,8 @@ def _init_git_repo(project_dir: Path):
         console.print("[yellow]Warning: Failed to initialize git repository[/yellow]")
 
 
-def _is_nzrrest_project() -> bool:
-    """Check if current directory is a nzrRest project"""
+def _is_nzrapi_project() -> bool:
+    """Check if current directory is a nzrApi project"""
 
     indicators = [Path("main.py"), Path("config.py"), Path("requirements.txt")]
 
@@ -437,7 +506,7 @@ def _add_model_to_config(model_name: str, model_type: str, config_file: str):
     # This is a simplified implementation
     # In practice, you'd need to parse and modify the Python config file
     model_config = f"""
-# Added by nzrrest CLI
+# Added by nzrapi CLI
 {{
     "name": "{model_name}",
     "type": "{model_type}",

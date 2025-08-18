@@ -1,24 +1,24 @@
-# nzrRest Framework
+# nzrApi Framework
 
 <div align="center">
 
 🤖 **Modern Async Python Framework for AI APIs with Native MCP Support**
 
-[![PyPI version](https://badge.fury.io/py/nzrrest.svg)](https://badge.fury.io/py/nzrrest)
-[![Python Support](https://img.shields.io/pypi/pyversions/nzrrest.svg)](https://pypi.org/project/nzrrest/)
+[![PyPI version](https://badge.fury.io/py/nzrapi.svg)](https://badge.fury.io/py/nzrapi)
+[![Python Support](https://img.shields.io/pypi/pyversions/nzrapi.svg)](https://pypi.org/project/nzrapi/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://github.com/nzrrest/nzrrest/workflows/Tests/badge.svg)](https://github.com/nzrrest/nzrrest/actions)
-[![Coverage](https://codecov.io/gh/nzrrest/nzrrest/branch/main/graph/badge.svg)](https://codecov.io/gh/nzrrest/nzrrest)
+[![Build Status](https://github.com/nzrapi/nzrapi/workflows/Tests/badge.svg)](https://github.com/nzrapi/nzrapi/actions)
+[![Coverage](https://codecov.io/gh/nzrapi/nzrapi/branch/main/graph/badge.svg)](https://codecov.io/gh/nzrapi/nzrapi)
 
-[**Documentation**](https://nzrrest.readthedocs.io) | [**Examples**](examples/) | [**n8n Integration**](examples/n8n_integration/) | [**Contributing**](CONTRIBUTING.md)
+[**Documentation**](https://nzrapi.readthedocs.io) | [**Examples**](examples/) | [**n8n Integration**](examples/n8n_integration/) | [**Contributing**](CONTRIBUTING.md)
 
 </div>
 
 ---
 
-## ✨ What is nzrRest?
+## ✨ What is nzrApi?
 
-**nzrRest** is a powerful, production-ready Python framework specifically designed for building AI-powered APIs. It combines the best of modern web frameworks with specialized features for AI model integration, making it the perfect choice for developers who want to build scalable AI services with minimal complexity.
+**nzrApi** is a powerful, production-ready Python framework specifically designed for building AI-powered APIs. It combines the best of modern web frameworks with specialized features for AI model integration, making it the perfect choice for developers who want to build scalable AI services with minimal complexity.
 
 ### 🎯 Key Features
 
@@ -37,20 +37,20 @@
 ### Installation
 
 ```bash
-pip install nzrrest
+pip install nzrapi
 ```
 
 ### Create Your First AI API
 
 ```bash
 # Create a new project
-nzrrest new my-ai-api
+nzrapi new my-ai-api
 
 # Navigate to project
 cd my-ai-api
 
 # Run the development server
-nzrrest run --reload
+nzrapi run --reload
 ```
 
 Your AI API is now running at `http://localhost:8000`! 🎉
@@ -58,9 +58,9 @@ Your AI API is now running at `http://localhost:8000`! 🎉
 ### Hello World Example
 
 ```python
-from nzrrest import NzrRestApp, Router
+from nzrapi import NzrApiApp, Router
 
-app = NzrRestApp(title="My AI API")
+app = NzrApiApp(title="My AI API")
 router = Router()
 
 @router.post("/chat")
@@ -82,10 +82,10 @@ if __name__ == "__main__":
 
 ## 🤖 AI Model Integration
 
-nzrRest makes it incredibly easy to work with AI models:
+nzrApi makes it incredibly easy to work with AI models:
 
 ```python
-from nzrrest.ai.models import AIModel
+from nzrapi.ai.models import AIModel
 
 class MyCustomModel(AIModel):
     async def load_model(self):
@@ -113,7 +113,7 @@ await app.ai_registry.add_model("my_model", "custom", config={...})
 
 ## 🔄 Model Context Protocol (MCP)
 
-nzrRest implements the Model Context Protocol for stateful AI interactions:
+nzrApi implements the Model Context Protocol for stateful AI interactions:
 
 ```python
 # MCP-compliant endpoint
@@ -139,10 +139,10 @@ async def mcp_predict(request, model_name: str):
 
 ## 🎨 Powerful Serializers
 
-nzrRest provides robust data validation:
+nzrApi provides robust data validation:
 
 ```python
-from nzrrest.serializers import BaseSerializer, CharField, IntegerField
+from nzrapi.serializers import BaseSerializer, CharField, IntegerField
 
 class ChatRequestSerializer(BaseSerializer):
     message = CharField(max_length=1000)
@@ -171,7 +171,7 @@ async def chat(request):
 Built-in async database support with SQLAlchemy:
 
 ```python
-from nzrrest.db import Base
+from nzrapi.db import Base
 from sqlalchemy import Column, Integer, String, DateTime
 
 class ConversationHistory(Base):
@@ -201,7 +201,7 @@ async def chat(request):
 
 ### Rate Limiting
 ```python
-from nzrrest.middleware import RateLimitMiddleware
+from nzrapi.middleware import RateLimitMiddleware
 
 app.add_middleware(
     RateLimitMiddleware,
@@ -212,7 +212,7 @@ app.add_middleware(
 
 ### Authentication
 ```python
-from nzrrest.middleware import AuthenticationMiddleware
+from nzrapi.middleware import AuthenticationMiddleware
 
 app.add_middleware(
     AuthenticationMiddleware,
@@ -235,25 +235,25 @@ app.add_middleware(
 
 ## 🔧 CLI Tools
 
-nzrRest includes powerful CLI tools for development:
+nzrApi includes powerful CLI tools for development:
 
 ```bash
 # Create new project
-nzrrest new my-project --template mcp-server
+nzrapi new my-project --template mcp-server
 
 # Run development server  
-nzrrest run --reload --port 8000
+nzrapi run --reload --port 8000
 
 # Database migrations
-nzrrest migrate -m "Add user table"
-nzrrest migrate --upgrade
+nzrapi migrate -m "Add user table"
+nzrapi migrate --upgrade
 
 # Model management
-nzrrest models --list
-nzrrest models --add openai_gpt4 --type openai
+nzrapi models --list
+nzrapi models --add openai_gpt4 --type openai
 
 # Project info
-nzrrest info
+nzrapi info
 ```
 
 ## 🌐 n8n Integration
@@ -330,11 +330,11 @@ Check out our comprehensive examples:
 
 ## 📖 Documentation
 
-- [**Quick Start Guide**](https://nzrrest.readthedocs.io/quickstart/)
-- [**API Reference**](https://nzrrest.readthedocs.io/api/)
-- [**AI Model Integration**](https://nzrrest.readthedocs.io/models/)
-- [**MCP Specification**](https://nzrrest.readthedocs.io/mcp/)
-- [**Deployment Guide**](https://nzrrest.readthedocs.io/deployment/)
+- [**Quick Start Guide**](https://nzrapi.readthedocs.io/quickstart/)
+- [**API Reference**](https://nzrapi.readthedocs.io/api/)
+- [**AI Model Integration**](https://nzrapi.readthedocs.io/models/)
+- [**MCP Specification**](https://nzrapi.readthedocs.io/mcp/)
+- [**Deployment Guide**](https://nzrapi.readthedocs.io/deployment/)
 
 ## 🤝 Contributing
 
@@ -342,8 +342,8 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ```bash
 # Development setup
-git clone https://github.com/nzrrest/nzrrest.git
-cd nzrrest
+git clone https://github.com/nzrapi/nzrapi.git
+cd nzrapi
 pip install -e ".[dev]"
 
 # Run tests
@@ -367,11 +367,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- **Homepage**: [https://nzrrest.dev](https://nzrrest.dev)
-- **Documentation**: [https://nzrrest.readthedocs.io](https://nzrrest.readthedocs.io)
-- **PyPI**: [https://pypi.org/project/nzrrest/](https://pypi.org/project/nzrrest/)
-- **GitHub**: [https://github.com/nzrrest/nzrrest](https://github.com/nzrrest/nzrrest)
-- **Discord**: [https://discord.gg/nzrrest](https://discord.gg/nzrrest)
+- **Homepage**: [https://nzrapi.dev](https://nzrapi.dev)
+- **Documentation**: [https://nzrapi.readthedocs.io](https://nzrapi.readthedocs.io)
+- **PyPI**: [https://pypi.org/project/nzrapi/](https://pypi.org/project/nzrapi/)
+- **GitHub**: [https://github.com/nzrapi/nzrapi](https://github.com/nzrapi/nzrapi)
+- **Discord**: [https://discord.gg/nzrapi](https://discord.gg/nzrapi)
 
 ---
 
@@ -379,6 +379,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ for the AI community**
 
-*nzrRest Framework - Making AI APIs Simple and Powerful*
+*nzrApi Framework - Making AI APIs Simple and Powerful*
 
 </div>

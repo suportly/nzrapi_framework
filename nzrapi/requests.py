@@ -1,5 +1,5 @@
 """
-Enhanced Request class for nzrRest framework
+Enhanced Request class for NzrApi framework
 """
 
 import json

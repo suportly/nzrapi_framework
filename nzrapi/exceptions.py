@@ -1,12 +1,12 @@
 """
-Custom exceptions for nzrRest framework
+Custom exceptions for NzrApi framework
 """
 
 from typing import Any, Dict, Optional
 
 
-class NzrRestException(Exception):
-    """Base exception for nzrRest framework"""
+class NzrApiException(Exception):
+    """Base exception for NzrApi framework"""
 
     def __init__(
         self,
@@ -20,7 +20,7 @@ class NzrRestException(Exception):
         super().__init__(message)
 
 
-class ValidationError(NzrRestException):
+class ValidationError(NzrApiException):
     """Raised when data validation fails"""
 
     def __init__(
@@ -31,28 +31,35 @@ class ValidationError(NzrRestException):
         super().__init__(message, status_code=400, details={"errors": errors or {}})
 
 
-class ModelNotFoundError(NzrRestException):
-    """Raised when an AI model is not found"""
+class NotFound(NzrApiException):
+    """Raised when a resource is not found"""
 
-    def __init__(self, message: str = "Model not found"):
+    def __init__(self, message: str = "Not found"):
         super().__init__(message, status_code=404)
 
 
-class AuthenticationError(NzrRestException):
+class ModelNotFoundError(NotFound):
+    """Raised when an AI model is not found"""
+
+    def __init__(self, message: str = "Model not found"):
+        super().__init__(message)
+
+
+class AuthenticationError(NzrApiException):
     """Raised when authentication fails"""
 
     def __init__(self, message: str = "Authentication failed"):
         super().__init__(message, status_code=401)
 
 
-class PermissionError(NzrRestException):
+class PermissionDenied(NzrApiException):
     """Raised when user lacks required permissions"""
 
     def __init__(self, message: str = "Permission denied"):
         super().__init__(message, status_code=403)
 
 
-class RateLimitError(NzrRestException):
+class RateLimitError(NzrApiException):
     """Raised when rate limit is exceeded"""
 
     def __init__(self, message: str = "Rate limit exceeded"):

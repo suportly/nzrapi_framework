@@ -1,5 +1,5 @@
 """
-AI model implementations for {{ project_name }}
+AI model implementations for mcp_server_example
 """
 
 import asyncio

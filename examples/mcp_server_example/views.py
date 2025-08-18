@@ -1,5 +1,5 @@
 """
-API endpoints for {{ project_name }}
+API endpoints for mcp_server_example
 """
 
 import json
@@ -7,8 +7,8 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from config import settings
-from models import ConversationHistory, ModelUsageStats
+from .config import settings
+from .models import ConversationHistory, ModelUsageStats
 
 from nzrapi import JSONResponse, Request, Router
 from nzrapi.ai.protocol import MCPError, MCPRequest, MCPResponse
@@ -33,7 +33,7 @@ class ChatRequestSerializer(BaseSerializer):
 
     message = CharField(required=True)
     context_id = CharField(required=False, allow_null=True)
-    model_name = CharField(required=False, default="{{ default_model }}")
+    model_name = CharField(required=False, default="openai_chat")
 
 
 class TextAnalysisRequestSerializer(BaseSerializer):
@@ -65,10 +65,12 @@ async def mcp_predict(request: Request, model_name: str):
             )
 
         # Create MCP request
-        mcp_request = MCPRequest(model_name=model_name, **serializer.validated_data)
+        validated_data = serializer.validated_data
+        validated_data.pop("model_name", None)  # Remove model_name from body if present
+        mcp_request = MCPRequest(model_name=model_name, **validated_data)
 
         # Get AI model
-        ai_model = request.app.ai_registry.get_model(model_name)
+        ai_model = request.app.state.nzrapi_app.ai_registry.get_model(model_name)
         if not ai_model:
             return JSONResponse(
                 {"error": f"Model '{model_name}' not found"}, status_code=404
@@ -77,7 +79,7 @@ async def mcp_predict(request: Request, model_name: str):
         # Retrieve context if provided
         context = {}
         if mcp_request.context_id:
-            async with request.app.get_db_session() as session:
+            async with request.app.state.nzrapi_app.get_db_session() as session:
                 conversation = await ConversationHistory.get_latest_by_context(
                     session, mcp_request.context_id
                 )
@@ -96,7 +98,7 @@ async def mcp_predict(request: Request, model_name: str):
         context_id = mcp_request.context_id or str(uuid.uuid4())
 
         # Store conversation history
-        async with request.app.get_db_session() as session:
+        async with request.app.state.nzrapi_app.get_db_session() as session:
             conversation = ConversationHistory(
                 context_id=context_id,
                 model_name=model_name,
@@ -126,7 +128,7 @@ async def mcp_predict(request: Request, model_name: str):
             tokens_used=result.get("tokens_used"),
         )
 
-        return JSONResponse(response.dict())
+        return JSONResponse(response.model_dump(mode="json"))
 
     except ValidationError as e:
         return JSONResponse(
@@ -137,7 +139,7 @@ async def mcp_predict(request: Request, model_name: str):
     except Exception as e:
         # Log error and store failed conversation
         if "mcp_request" in locals():
-            async with request.app.get_db_session() as session:
+            async with request.app.state.nzrapi_app.get_db_session() as session:
                 conversation = ConversationHistory(
                     context_id=mcp_request.context_id or "error",
                     model_name=model_name,
@@ -177,7 +179,7 @@ async def chat(request: Request):
         mcp_request = MCPRequest(
             model_name=data["model_name"],
             context_id=data.get("context_id"),
-            payload={"message": data["message"], "context_id": data.get("context_id")},
+            payload={"prompt": data["message"]},
         )
 
         # Process through MCP endpoint
@@ -242,7 +244,7 @@ async def analyze_text(request: Request):
 async def list_models(request: Request):
     """List all available AI models"""
     try:
-        models = request.app.ai_registry.list_models()
+        models = request.app.state.nzrapi_app.ai_registry.list_models()
         return JSONResponse({"models": models})
     except Exception as e:
         return JSONResponse(
@@ -254,7 +256,7 @@ async def list_models(request: Request):
 async def get_model_info(request: Request, model_name: str):
     """Get information about a specific model"""
     try:
-        model = request.app.ai_registry.get_model(model_name)
+        model = request.app.state.nzrapi_app.ai_registry.get_model(model_name)
         if not model:
             return JSONResponse(
                 {"error": f"Model '{model_name}' not found"}, status_code=404
@@ -274,14 +276,14 @@ async def get_model_info(request: Request, model_name: str):
 async def model_health_check(request: Request, model_name: str):
     """Check health of a specific model"""
     try:
-        model = request.app.ai_registry.get_model(model_name)
+        model = request.app.state.nzrapi_app.ai_registry.get_model(model_name)
         if not model:
             return JSONResponse(
                 {"error": f"Model '{model_name}' not found"}, status_code=404
             )
 
         health = await model.health_check()
-        return JSONResponse(health.dict())
+        return JSONResponse(health.model_dump(mode="json"))
     except Exception as e:
         return JSONResponse(
             {"error": "Health check failed", "details": str(e)}, status_code=500
@@ -293,7 +295,7 @@ async def model_health_check(request: Request, model_name: str):
 async def get_conversation_history(request: Request, context_id: str):
     """Get conversation history for a context"""
     try:
-        async with request.app.get_db_session() as session:
+        async with request.app.state.nzrapi_app.get_db_session() as session:
             conversations = await ConversationHistory.get_by_context_id(
                 session, context_id
             )
@@ -331,10 +333,10 @@ async def get_conversation_history(request: Request, context_id: str):
 async def get_usage_stats(request: Request):
     """Get usage statistics for all models"""
     try:
-        async with request.app.get_db_session() as session:
+        async with request.app.state.nzrapi_app.get_db_session() as session:
             # Get overall stats
             stats = {}
-            models = request.app.ai_registry.list_models()
+            models = request.app.state.nzrapi_app.ai_registry.list_models()
 
             for model_info in models:
                 model_name = model_info["name"]
@@ -352,7 +354,7 @@ async def get_usage_stats(request: Request):
                     for stat in model_stats
                 ]
 
-            return {"status": "ok", "usage": stats}
+            return JSONResponse({"usage_statistics": stats})
     except Exception as e:
         return JSONResponse(
             {"error": "Failed to get usage stats", "details": str(e)}, status_code=500
@@ -365,7 +367,7 @@ async def _update_usage_stats(
 ):
     """Update usage statistics for a model"""
     try:
-        async with request.app.get_db_session() as session:
+        async with request.app.state.nzrapi_app.get_db_session() as session:
             # Find or create today's stats
             today = datetime.utcnow().date()
 

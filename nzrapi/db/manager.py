@@ -1,5 +1,5 @@
 """
-Database integration with SQLAlchemy async for nzrRest framework
+Database integration with SQLAlchemy async for NzrApi framework
 """
 
 import asyncio
@@ -31,18 +31,12 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, declarative_base, relationship
 from sqlalchemy.pool import StaticPool
 
-from .exceptions import NzrRestException
-
-
-# Base class for SQLAlchemy models
-class Base(DeclarativeBase):
-    """Base class for all database models"""
-
-    pass
+from ..exceptions import NzrApiException
+from .models import Model
 
 
 class DatabaseManager:
-    """Manages database connections and sessions for nzrRest"""
+    """Manages database connections and sessions for NzrApi"""
 
     def __init__(
         self,
@@ -78,6 +72,11 @@ class DatabaseManager:
         # Handle SQLite special case
         if database_url.startswith("sqlite"):
             self.engine_kwargs.update({"poolclass": StaticPool, "connect_args": {"check_same_thread": False}})
+            # These are not supported by aiosqlite
+            del self.engine_kwargs["pool_size"]
+            del self.engine_kwargs["max_overflow"]
+            del self.engine_kwargs["pool_timeout"]
+            del self.engine_kwargs["pool_recycle"]
 
         self.engine: Optional[AsyncEngine] = None
         self.session_factory: Optional[async_sessionmaker] = None
@@ -94,7 +93,7 @@ class DatabaseManager:
                 await conn.run_sync(lambda sync_conn: None)
 
         except Exception as e:
-            raise NzrRestException(f"Failed to connect to database: {e}")
+            raise NzrApiException(f"Failed to connect to database: {e}")
 
     async def disconnect(self) -> None:
         """Disconnect from the database"""
@@ -126,7 +125,7 @@ class DatabaseManager:
             finally:
                 await session.close()
 
-    async def create_tables(self, base: Type[DeclarativeBase] = Base) -> None:
+    async def create_tables(self, base: Type[DeclarativeBase] = Model) -> None:
         """Create all tables
 
         Args:
@@ -138,7 +137,7 @@ class DatabaseManager:
         async with self.engine.begin() as conn:
             await conn.run_sync(base.metadata.create_all)
 
-    async def drop_tables(self, base: Type[DeclarativeBase] = Base) -> None:
+    async def drop_tables(self, base: Type[DeclarativeBase] = Model) -> None:
         """Drop all tables
 
         Args:
@@ -195,87 +194,72 @@ class DatabaseManager:
 class Repository:
     """Base repository class for database operations"""
 
-    def __init__(self, session: AsyncSession, model_class: Type[Base]):
-        """Initialize repository
+    def __init__(self, session: AsyncSession, model_class: Type[Model]):
+        """Initialize repository.
 
         Args:
-            session: Database session
-            model_class: SQLAlchemy model class
+            session: Database session.
+            model_class: SQLAlchemy model class.
         """
         self.session = session
         self.model_class = model_class
 
-    async def create(self, **kwargs) -> Base:
-        """Create a new record
+    async def _apply_filters(self, stmt, filters: Optional[Dict[str, Any]] = None, filter_expressions: Optional[List[Any]] = None):
+        if filters:
+            for field, value in filters.items():
+                stmt = stmt.where(getattr(self.model_class, field) == value)
+        if filter_expressions:
+            stmt = stmt.where(*filter_expressions)
+        return stmt
 
-        Args:
-            **kwargs: Field values for the new record
-
-        Returns:
-            Created model instance
-        """
-        instance = self.model_class(**kwargs)
-        self.session.add(instance)
-        await self.session.flush()
-        await self.session.refresh(instance)
-        return instance
-
-    async def get_by_id(self, id: Any) -> Optional[Base]:
-        """Get record by ID
-
-        Args:
-            id: Record ID
-
-        Returns:
-            Model instance or None if not found
-        """
-        return await self.session.get(self.model_class, id)
-
-    async def get_by_field(self, field: str, value: Any) -> Optional[Base]:
-        """Get record by field value
-
-        Args:
-            field: Field name
-            value: Field value
-
-        Returns:
-            Model instance or None if not found
-        """
+    async def find(
+        self,
+        filters: Optional[Dict[str, Any]] = None,
+        filter_expressions: Optional[List[Any]] = None,
+        order_by_args: Optional[List[Any]] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
+    ) -> list[Model]:
+        """Find multiple records matching the criteria."""
         from sqlalchemy import select
 
-        stmt = select(self.model_class).where(getattr(self.model_class, field) == value)
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        stmt = select(self.model_class)
+        stmt = await self._apply_filters(stmt, filters, filter_expressions)
 
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> list[Base]:
-        """List all records
+        if order_by_args:
+            stmt = stmt.order_by(*order_by_args)
 
-        Args:
-            limit: Maximum number of records to return
-            offset: Number of records to skip
-
-        Returns:
-            List of model instances
-        """
-        from sqlalchemy import select
-
-        stmt = select(self.model_class).offset(offset)
+        stmt = stmt.offset(offset)
         if limit:
             stmt = stmt.limit(limit)
 
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def update(self, instance: Base, **kwargs) -> Base:
-        """Update a record
+    async def find_one(self, filters: Dict[str, Any]) -> Optional[Model]:
+        """Find a single record matching the criteria."""
+        from sqlalchemy import select
 
-        Args:
-            instance: Model instance to update
-            **kwargs: Field values to update
+        stmt = select(self.model_class)
+        stmt = await self._apply_filters(stmt, filters)
 
-        Returns:
-            Updated model instance
-        """
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_by_id(self, id: Any) -> Optional[Model]:
+        """Get record by ID."""
+        return await self.session.get(self.model_class, id)
+
+    async def create(self, **kwargs) -> Model:
+        """Create a new record."""
+        instance = self.model_class(**kwargs)
+        self.session.add(instance)
+        await self.session.flush()
+        await self.session.refresh(instance)
+        return instance
+
+    async def update(self, instance: Model, **kwargs) -> Model:
+        """Update a record."""
         for key, value in kwargs.items():
             if hasattr(instance, key):
                 setattr(instance, key, value)
@@ -284,26 +268,21 @@ class Repository:
         await self.session.refresh(instance)
         return instance
 
-    async def delete(self, instance: Base) -> None:
-        """Delete a record
-
-        Args:
-            instance: Model instance to delete
-        """
+    async def delete(self, instance: Model) -> None:
+        """Delete a record."""
         await self.session.delete(instance)
         await self.session.flush()
 
-    async def count(self) -> int:
-        """Count total records
-
-        Returns:
-            Total number of records
-        """
+    async def count(self, filters: Optional[Dict[str, Any]] = None, filter_expressions: Optional[List[Any]] = None) -> int:
+        """Count total records, optionally with filters."""
         from sqlalchemy import func, select
 
         stmt = select(func.count()).select_from(self.model_class)
+        stmt = await self._apply_filters(stmt, filters, filter_expressions)
+
         result = await self.session.execute(stmt)
-        return result.scalar()
+        count = result.scalar()
+        return count if count is not None else 0
 
 
 class TransactionManager:
@@ -408,46 +387,3 @@ async def init_database(database_url: str, create_tables: bool = True) -> Databa
         await db_manager.create_tables()
 
     return db_manager
-
-
-# Example models for reference
-
-
-class ConversationHistory(Base):
-    """Example model for storing AI conversation history"""
-
-    __tablename__ = "conversation_history"
-
-    id = Column(Integer, primary_key=True, index=True)
-    context_id = Column(String(255), index=True, nullable=False)
-    model_name = Column(String(100), nullable=False)
-    input_payload = Column(Text, nullable=False)
-    output_result = Column(Text, nullable=False)
-    context_data = Column(Text)  # JSON serialized context
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    execution_time = Column(Integer)  # milliseconds
-    tokens_used = Column(Integer)
-
-    @classmethod
-    async def get_by_context_id(cls, session: AsyncSession, context_id: str):
-        """Get conversation by context ID"""
-        from sqlalchemy import select
-
-        stmt = select(cls).where(cls.context_id == context_id).order_by(cls.created_at.desc())
-        result = await session.execute(stmt)
-        return result.scalar_one_or_none()
-
-
-class APIKey(Base):
-    """Example model for API key management"""
-
-    __tablename__ = "api_keys"
-
-    id = Column(Integer, primary_key=True, index=True)
-    key_hash = Column(String(255), unique=True, index=True, nullable=False)
-    name = Column(String(100), nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    last_used_at = Column(DateTime)
-    usage_count = Column(Integer, default=0, nullable=False)
-    rate_limit = Column(Integer, default=1000)  # requests per hour

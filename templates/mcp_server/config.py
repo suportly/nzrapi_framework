@@ -22,7 +22,7 @@ class Settings:
     )
     
     # CORS settings
-    ENABLE_CORS: bool = {{ include_cors | lower }}
+    ENABLE_CORS: bool = {{ include_cors }}
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:8080",
@@ -40,15 +40,12 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    {% endif %}
     
-    # Logging
+    {% endif %}# Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-
 
 # Create settings instance
 settings = Settings()
-
 
 # AI Models Configuration
 AI_MODELS_CONFIG = {

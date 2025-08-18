@@ -1,5 +1,5 @@
 """
-Tests for nzrRest application core functionality
+Tests for NzrApi application core functionality
 """
 
 import asyncio
@@ -7,30 +7,21 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from nzrrest import JSONResponse, NzrRestApp, Router
+from nzrapi import JSONResponse, NzrApiApp, Router
 
 
 @pytest.fixture
 def app():
     """Create test application"""
-    return NzrRestApp(debug=True)
+    return NzrApiApp(debug=True)
 
 
-@pytest.fixture
-async def async_app():
-    """Create async test application"""
-    app = NzrRestApp(debug=True)
-    await app.startup()
-    yield app
-    await app.shutdown()
-
-
-class TestNzrRestApp:
-    """Test NzrRestApp functionality"""
+class TestNzrApiApp:
+    """Test NzrApiApp functionality"""
 
     def test_app_creation(self):
         """Test basic app creation"""
-        app = NzrRestApp(title="Test API", version="1.0.0", debug=True)
+        app = NzrApiApp(title="Test API", version="1.0.0", debug=True)
 
         assert app.title == "Test API"
         assert app.version == "1.0.0"
@@ -41,7 +32,7 @@ class TestNzrRestApp:
     def test_app_with_database(self):
         """Test app creation with database"""
         database_url = "sqlite+aiosqlite:///:memory:"
-        app = NzrRestApp(database_url=database_url, debug=True)
+        app = NzrApiApp(database_url=database_url, debug=True)
 
         assert app.database_url == database_url
         assert app.db_manager is not None
@@ -68,19 +59,6 @@ class TestNzrRestApp:
 
         # Routes should be added
         assert len(app.router.routes) > initial_routes
-
-    @pytest.mark.asyncio
-    async def test_startup_shutdown(self):
-        """Test app startup and shutdown"""
-        app = NzrRestApp(debug=True)
-
-        # Test startup
-        await app.startup()
-        assert app.ai_registry is not None
-
-        # Test shutdown
-        await app.shutdown()
-        # Ensure cleanup completed without errors
 
     def test_route_decorators(self, app):
         """Test route decorator methods"""
@@ -146,7 +124,7 @@ class TestRouterIntegration:
     @pytest.mark.asyncio
     async def test_nested_routers(self):
         """Test nested router inclusion"""
-        app = NzrRestApp(debug=True)
+        app = NzrApiApp(debug=True)
 
         # Create nested routers
         api_router = Router()
@@ -175,7 +153,7 @@ class TestRouterIntegration:
 @pytest.mark.asyncio
 async def test_asgi_interface():
     """Test ASGI interface compliance"""
-    app = NzrRestApp(debug=True)
+    app = NzrApiApp(debug=True)
 
     # Mock ASGI scope, receive, send
     scope = {

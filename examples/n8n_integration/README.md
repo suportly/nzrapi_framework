@@ -1,10 +1,10 @@
-# nzrRest + n8n Integration Example
+# NzrApi + n8n Integration Example
 
-This directory contains examples of how to integrate nzrRest AI APIs with n8n workflows.
+This directory contains examples of how to integrate NzrApi AI APIs with n8n workflows.
 
 ## Overview
 
-nzrRest is designed to work seamlessly with n8n, providing:
+NzrApi is designed to work seamlessly with n8n, providing:
 
 - **Model Context Protocol (MCP)** compliance for stateful AI interactions
 - **Structured API responses** that work well with n8n's data processing
@@ -23,7 +23,7 @@ nzrRest is designed to work seamlessly with n8n, providing:
   "nodes": [
     {
       "parameters": {
-        "url": "http://your-nzrrest-api.com/api/v1/mcp/advanced_chat/predict",
+        "url": "http://your-nzrapi-api.com/api/v1/mcp/advanced_chat/predict",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -380,11 +380,11 @@ GET /api/v1/conversations/{context_id}
 ### 3. Rate Limiting
 - Implement delays between requests if needed
 - Use n8n's built-in rate limiting features
-- Monitor API usage through nzrRest metrics
+- Monitor API usage through NzrApi metrics
 
 ### 4. Data Transformation
 ```javascript
-// Transform n8n data for nzrRest API
+// Transform n8n data for NzrApi API
 {
   "context_id": "workflow_{{ $workflow.id }}_{{ $execution.id }}",
   "payload": {
@@ -405,7 +405,7 @@ GET /api/v1/conversations/{context_id}
 
 ## Environment Setup
 
-### 1. nzrRest API Configuration
+### 1. NzrApi API Configuration
 ```python
 # config.py
 CORS_ORIGINS = [
@@ -421,8 +421,8 @@ RATE_LIMIT_PER_HOUR = 5000
 ### 2. n8n Environment Variables
 ```bash
 # .env for n8n
-NZRREST_API_URL=https://your-api-domain.com
-NZRREST_API_KEY=your-api-key
+NZRAPI_API_URL=https://your-api-domain.com
+NZRAPI_API_KEY=your-api-key
 ```
 
 ### 3. Docker Deployment
@@ -430,7 +430,7 @@ NZRREST_API_KEY=your-api-key
 # docker-compose.yml
 version: '3.8'
 services:
-  nzrrest-api:
+  nzrapi-api:
     build: .
     environment:
       - CORS_ORIGINS=["https://app.n8n.cloud"]
@@ -440,11 +440,11 @@ services:
   n8n:
     image: n8nio/n8n
     environment:
-      - NZRREST_API_URL=http://nzrrest-api:8000
+      - NZRAPI_API_URL=http://nzrapi-api:8000
     ports:
       - "5678:5678"
     depends_on:
-      - nzrrest-api
+      - nzrapi-api
 ```
 
 ## Monitoring and Debugging
@@ -469,4 +469,4 @@ GET /api/v1/stats
 GET /api/v1/conversations/{context_id}
 ```
 
-This integration provides a powerful foundation for building AI-powered automation workflows with n8n and nzrRest!
+This integration provides a powerful foundation for building AI-powered automation workflows with n8n and NzrApi!

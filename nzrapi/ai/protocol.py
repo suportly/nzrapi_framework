@@ -1,5 +1,5 @@
 """
-Model Context Protocol (MCP) schemas and utilities for nzrRest
+Model Context Protocol (MCP) schemas and utilities for NzrApi
 """
 
 from datetime import datetime

@@ -1,5 +1,5 @@
 """
-AI and MCP module for nzrRest framework
+AI and MCP module for NzrApi framework
 """
 
 from .context import ContextManager

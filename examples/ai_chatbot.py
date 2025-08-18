@@ -1,5 +1,5 @@
 """
-AI Chatbot Example with nzrRest Framework
+AI Chatbot Example with NzrApi Framework
 
 This example demonstrates:
 - Advanced AI model integration
@@ -18,13 +18,13 @@ from typing import Any, Dict, Optional
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from nzrrest import JSONResponse, NzrRestApp, Request, Router
-from nzrrest.ai.context import ContextConfig, ContextManager
-from nzrrest.ai.models import AIModel
-from nzrrest.ai.protocol import MCPRequest, MCPResponse
-from nzrrest.db import Base, init_database
-from nzrrest.middleware import CORSMiddleware, RequestLoggingMiddleware
-from nzrrest.serializers import BaseSerializer, BooleanField, CharField
+from nzrapi import JSONResponse, NzrApiApp, Request, Router
+from nzrapi.ai.context import ContextConfig, ContextManager
+from nzrapi.ai.models import AIModel
+from nzrapi.ai.protocol import MCPRequest, MCPResponse
+from nzrapi.db import Base, init_database
+from nzrapi.middleware import CORSMiddleware, RequestLoggingMiddleware
+from nzrapi.serializers import BaseSerializer, BooleanField, CharField
 
 
 class ChatMessage(Base):
@@ -67,7 +67,7 @@ class AdvancedChatModel(AIModel):
         self.max_context_turns = config.get("max_context_turns", 10)
         self.system_prompt = config.get(
             "system_prompt",
-            "You are a helpful AI assistant built with nzrRest framework.",
+            "You are a helpful AI assistant built with NzrApi framework.",
         )
         self.conversation_memory = {}
 
@@ -168,9 +168,9 @@ class AdvancedChatModel(AIModel):
         if any(word in message_lower for word in ["bye", "goodbye", "see you"]):
             return "Goodbye! It was great chatting with you. Feel free to come back anytime! 👋"
 
-        # Technical questions about nzrRest
-        if "nzrrest" in message_lower or "framework" in message_lower:
-            return """nzrRest is a powerful Python framework for building AI APIs! Here are some key features:
+        # Technical questions about NzrApi
+        if "nzrapi" in message_lower or "framework" in message_lower:
+            return """NzrApi is a powerful Python framework for building AI APIs! Here are some key features:
             
             🤖 Native AI model integration
             🔄 Model Context Protocol (MCP) support  
@@ -183,7 +183,7 @@ class AdvancedChatModel(AIModel):
 
         # Programming help
         if any(word in message_lower for word in ["code", "program", "python", "api"]):
-            return "I'd be happy to help with programming questions! I can assist with Python, API design, nzrRest framework usage, and general software development topics. What specific area are you working on?"
+            return "I'd be happy to help with programming questions! I can assist with Python, API design, NzrApi framework usage, and general software development topics. What specific area are you working on?"
 
         # Contextual continuation
         if context_topics:
@@ -191,7 +191,7 @@ class AdvancedChatModel(AIModel):
                 return "Based on our conversation about programming, I can provide more specific guidance. Could you share what you're trying to build or what challenge you're facing?"
 
         # Default intelligent response
-        return f"That's an interesting point about '{message}'. I'm here to help with questions, have conversations, or assist with tasks related to AI, programming, or the nzrRest framework. What would you like to explore further?"
+        return f"That's an interesting point about '{message}'. I'm here to help with questions, have conversations, or assist with tasks related to AI, programming, or the NzrApi framework. What would you like to explore further?"
 
     def _extract_topics(self, messages: list) -> list:
         """Extract topics from recent messages"""
@@ -234,8 +234,8 @@ class AdvancedChatModel(AIModel):
 
 
 # Create application
-app = NzrRestApp(
-    title="AI Chatbot with nzrRest",
+app = NzrApiApp(
+    title="AI Chatbot with NzrApi",
     version="1.0.0",
     database_url="sqlite+aiosqlite:///./chatbot.db",
     debug=True,
@@ -460,7 +460,7 @@ async def health():
 @app.on_startup
 async def startup():
     """Initialize the chatbot application"""
-    print("🤖 Starting AI Chatbot with nzrRest...")
+    print("🤖 Starting AI Chatbot with NzrApi...")
 
     # Start context manager
     await context_manager.start()
@@ -498,7 +498,7 @@ async def startup():
             config={
                 "name": name,
                 "version": "1.0.0",
-                "provider": "nzrrest",
+                "provider": "nzrapi",
                 "personality": personality,
                 "system_prompt": system_prompt,
                 "max_context_turns": 15,
@@ -516,9 +516,9 @@ async def startup():
         config={
             "name": "advanced_chat",
             "version": "1.0.0",
-            "provider": "nzrrest",
+            "provider": "nzrapi",
             "personality": "helpful",
-            "system_prompt": "You are a helpful AI assistant built with nzrRest framework. You're knowledgeable, friendly, and always ready to help!",
+            "system_prompt": "You are a helpful AI assistant built with NzrApi framework. You're knowledgeable, friendly, and always ready to help!",
             "max_context_turns": 12,
         },
     )
@@ -538,7 +538,7 @@ async def shutdown():
 if __name__ == "__main__":
     import uvicorn
 
-    print("🚀 Starting Advanced AI Chatbot with nzrRest Framework")
+    print("🚀 Starting Advanced AI Chatbot with NzrApi Framework")
     print("\nAvailable endpoints:")
     print("  POST /api/v1/chat - Chat with AI")
     print("  POST /api/v1/sessions - Create chat session")
@@ -547,6 +547,6 @@ if __name__ == "__main__":
     print("\nExample chat request:")
     print("  curl -X POST http://localhost:8001/api/v1/chat \\")
     print('    -H "Content-Type: application/json" \\')
-    print('    -d \'{"message": "Hello! Tell me about nzrRest framework"}\'')
+    print('    -d \'{"message": "Hello! Tell me about NzrApi framework"}\'')
 
     uvicorn.run("ai_chatbot:app", host="0.0.0.0", port=8001, reload=True, log_level="info")

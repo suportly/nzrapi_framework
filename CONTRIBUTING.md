@@ -1,6 +1,6 @@
-# Contributing to nzrRest Framework
+# Contributing to NzrApi Framework
 
-Thank you for your interest in contributing to nzrRest! We welcome contributions from developers of all skill levels. This guide will help you get started with contributing to the project.
+Thank you for your interest in contributing to NzrApi! We welcome contributions from developers of all skill levels. This guide will help you get started with contributing to the project.
 
 ## 🤝 How to Contribute
 
@@ -12,7 +12,7 @@ Before creating an issue, please:
 2. **Use a clear and descriptive title**
 3. **Provide detailed information** about the bug or feature request
 4. **Include steps to reproduce** for bugs
-5. **Specify your environment** (OS, Python version, nzrRest version)
+5. **Specify your environment** (OS, Python version, NzrApi version)
 
 ### Feature Requests
 
@@ -35,8 +35,8 @@ We welcome feature requests! Please:
 1. **Fork the repository**
    ```bash
    # Fork on GitHub, then clone your fork
-   git clone https://github.com/YOUR_USERNAME/nzrrest.git
-   cd nzrrest
+   git clone https://github.com/YOUR_USERNAME/nzrapi.git
+   cd nzrapi
    ```
 
 2. **Set up development environment**
@@ -85,13 +85,13 @@ We welcome feature requests! Please:
    pytest tests/test_your_feature.py
    
    # Run with coverage
-   pytest --cov=nzrrest
+   pytest --cov=nzrapi
    
    # Run linting and formatting
    black .
    isort .
    flake8
-   mypy nzrrest
+   mypy nzrapi
    ```
 
 4. **Commit your changes**
@@ -133,7 +133,7 @@ isort .
 flake8
 
 # Type checking
-mypy nzrrest
+mypy nzrapi
 ```
 
 ### Example Code Style
@@ -145,8 +145,8 @@ Module docstring describing the purpose.
 
 from typing import Dict, List, Optional
 
-from nzrrest import NzrRestApp
-from nzrrest.ai.models import AIModel
+from nzrapi import NzrApiApp
+from nzrapi.ai.models import AIModel
 
 
 class ExampleModel(AIModel):
@@ -209,8 +209,8 @@ class ExampleModel(AIModel):
 """Tests for example module."""
 
 import pytest
-from nzrrest import NzrRestApp
-from nzrrest.ai.models import MockAIModel
+from nzrapi import NzrApiApp
+from nzrapi.ai.models import MockAIModel
 
 
 class TestExampleModel:
@@ -253,7 +253,7 @@ pytest
 pytest tests/test_ai_models.py
 
 # Run with coverage
-pytest --cov=nzrrest --cov-report=html
+pytest --cov=nzrapi --cov-report=html
 
 # Run integration tests only
 pytest -m integration
@@ -387,7 +387,7 @@ test(ai): add tests for model registry
 Enable debug mode for better error messages:
 
 ```python
-app = NzrRestApp(debug=True)
+app = NzrApiApp(debug=True)
 ```
 
 ### Logging
@@ -409,11 +409,11 @@ logger.info("Info message")
 - **GitHub Issues**: For bugs and feature requests
 - **GitHub Discussions**: For questions and general discussion
 - **Discord**: Join our community chat (link in README)
-- **Email**: Contact maintainers at team@nzrrest.dev
+- **Email**: Contact maintainers at team@nzrapi.dev
 
 ## 📄 License
 
-By contributing to nzrRest, you agree that your contributions will be licensed under the MIT License.
+By contributing to NzrApi, you agree that your contributions will be licensed under the MIT License.
 
 ## 🙏 Recognition
 
@@ -423,4 +423,4 @@ All contributors will be:
 - Mentioned in release notes for significant contributions
 - Invited to join the core contributor team for sustained contributions
 
-Thank you for contributing to nzrRest! Your efforts help make AI API development better for everyone. 🚀
+Thank you for contributing to NzrApi! Your efforts help make AI API development better for everyone. 🚀

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# nzrRest Framework - PyPI Publication Script
+# NzrApi Framework - PyPI Publication Script
 # This script automates the process of building and publishing the package to PyPI
 
 set -e  # Exit on any error
@@ -73,7 +73,7 @@ validate_version() {
 
 # Main script starts here
 main() {
-    print_status "🚀 Starting nzrRest Framework publication process..."
+    print_status "🚀 Starting NzrApi Framework publication process..."
     
     # Check prerequisites
     print_status "Checking prerequisites..."
@@ -163,7 +163,7 @@ main() {
         sed -i "s/version = \".*\"/version = \"$NEW_VERSION\"/" pyproject.toml
         
         # Update version in __init__.py
-        sed -i "s/__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" nzrrest/__init__.py
+        sed -i "s/__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" nzrapi/__init__.py
         
         print_success "Version updated to $NEW_VERSION"
         CURRENT_VERSION=$NEW_VERSION
@@ -204,7 +204,7 @@ main() {
         }
         
         # Run type checking
-        python -m mypy nzrrest || {
+        python -m mypy nzrapi || {
             print_warning "Type checking issues found."
         }
         
@@ -265,17 +265,17 @@ main() {
     if [ "$PUBLISH_TYPE" = "production" ]; then
         print_status "Uploading to production PyPI..."
         python -m twine upload dist/*
-        PYPI_URL="https://pypi.org/project/nzrrest/$CURRENT_VERSION/"
+        PYPI_URL="https://pypi.org/project/nzrapi/$CURRENT_VERSION/"
     else
         print_status "Uploading to test PyPI..."
         python -m twine upload --repository testpypi dist/*
-        PYPI_URL="https://test.pypi.org/project/nzrrest/$CURRENT_VERSION/"
+        PYPI_URL="https://test.pypi.org/project/nzrapi/$CURRENT_VERSION/"
     fi
     
     # Create git tag if publishing to production and version was updated
     if [ "$PUBLISH_TYPE" = "production" ] && [ -n "$NEW_VERSION" ]; then
         print_status "Creating git tag..."
-        git add pyproject.toml nzrrest/__init__.py
+        git add pyproject.toml nzrapi/__init__.py
         git commit -m "chore: bump version to $NEW_VERSION"
         git tag -a "v$NEW_VERSION" -m "Release version $NEW_VERSION"
         
@@ -290,17 +290,17 @@ main() {
     print_success "🎉 Package published successfully!"
     echo ""
     print_status "Package details:"
-    echo "  📦 Package: nzrrest"
+    echo "  📦 Package: nzrapi"
     echo "  🏷️  Version: $CURRENT_VERSION"
     echo "  🌐 URL: $PYPI_URL"
     echo ""
     
     if [ "$PUBLISH_TYPE" = "test" ]; then
         print_status "To install from test PyPI:"
-        echo "  pip install -i https://test.pypi.org/simple/ nzrrest==$CURRENT_VERSION"
+        echo "  pip install -i https://test.pypi.org/simple/ nzrapi==$CURRENT_VERSION"
     else
         print_status "To install from PyPI:"
-        echo "  pip install nzrrest==$CURRENT_VERSION"
+        echo "  pip install nzrapi==$CURRENT_VERSION"
     fi
     
     echo ""

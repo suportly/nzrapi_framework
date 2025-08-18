@@ -1,1 +1,1 @@
-# Test package for nzrRest framework
+# Test package for NzrApi framework

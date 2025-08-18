@@ -1,5 +1,5 @@
 """
-Middleware system for nzrRest framework
+Middleware system for NzrApi framework
 """
 
 import asyncio
@@ -156,7 +156,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 message="Rate limit exceeded",
                 status_code=429,
                 error_code="RATE_LIMIT_EXCEEDED",
-            ).to_starlette_response()
+            )
 
         # Record the request
         self._record_request(key, now)
@@ -237,7 +237,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             message="Authentication required",
             status_code=401,
             error_code="AUTHENTICATION_REQUIRED",
-        ).to_starlette_response()
+        )
 
     async def _authenticate_api_key(self, api_key: str) -> Optional[Dict[str, Any]]:
         """Authenticate using API key"""
@@ -285,14 +285,14 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                 message="Rate limit exceeded",
                 status_code=429,
                 error_code="RATE_LIMIT_EXCEEDED",
-            ).to_starlette_response()
+            )
 
         elif isinstance(exc, AuthenticationError):
             return ErrorResponse(
                 message="Authentication failed",
                 status_code=401,
                 error_code="AUTHENTICATION_FAILED",
-            ).to_starlette_response()
+            )
 
         else:
             # Log the error
@@ -310,13 +310,13 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                         "type": type(exc).__name__,
                         "traceback": traceback.format_exc(),
                     },
-                ).to_starlette_response()
+                )
             else:
                 return ErrorResponse(
                     message="Internal server error",
                     status_code=500,
                     error_code="INTERNAL_ERROR",
-                ).to_starlette_response()
+                )
 
 
 class CompressionMiddleware(BaseHTTPMiddleware):

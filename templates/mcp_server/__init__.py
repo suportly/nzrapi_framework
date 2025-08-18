@@ -1,1 +1,1 @@
-# Generated nzrRest MCP Server Project
+"""{{ project_name }} module"""

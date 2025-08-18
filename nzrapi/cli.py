@@ -2,9 +2,9 @@
 CLI tool for nzrApi framework using Typer
 """
 
-import os
 import importlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Optional
 
 import jinja2
-
 import typer
 from rich.console import Console
 from rich.panel import Panel

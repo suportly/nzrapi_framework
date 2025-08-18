@@ -7,10 +7,6 @@ from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
-from .config import AI_MODELS_CONFIG, settings
-from .models import Base
-from .views import router as api_router
-
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -21,6 +17,10 @@ from nzrapi.middleware import (
     RateLimitMiddleware,
     RequestLoggingMiddleware,
 )
+
+from .config import AI_MODELS_CONFIG, settings
+from .models import Base
+from .views import router as api_router
 
 # Create NzrApi application
 app = NzrApiApp(

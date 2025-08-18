@@ -4,9 +4,7 @@ mcp_server_example - AI API Server built with NzrApi Framework
 
 import uvicorn
 from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -22,6 +20,10 @@ from .config import AI_MODELS_CONFIG, settings
 from .models import Base
 from .views import router as api_router
 
+# Load environment variables from .env file
+load_dotenv()
+
+
 # Create NzrApi application
 app = NzrApiApp(
     database_url=settings.DATABASE_URL,
@@ -32,8 +34,6 @@ app = NzrApiApp(
 
 # Add middleware
 if settings.ENABLE_CORS:
-    from starlette.middleware.cors import CORSMiddleware
-
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,

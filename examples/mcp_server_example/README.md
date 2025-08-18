@@ -178,6 +178,53 @@ nzrapi migrate --upgrade
 nzrapi migrate --downgrade -1
 ```
 
+## Accessing Middleware from Endpoints
+
+In some cases, you may need to access a middleware's instance from an endpoint (e.g., to call a method on it). The recommended pattern is to store the middleware instance in the application's state during the `startup` event.
+
+Here's how it's done for the `MetricsMiddleware`:
+
+1.  **Add the middleware as usual in `main.py`**:
+
+    ```python
+    app.add_middleware(MetricsMiddleware)
+    ```
+
+2.  **Find and store the instance at startup**:
+
+    In the `startup_event` function, traverse the middleware stack to find the instance and add it to `app.state`.
+
+    ```python
+    # main.py
+
+    @app.on_startup
+    async def startup_event():
+        # ... (other startup logic)
+
+        # Find and store the MetricsMiddleware instance
+        current_app = app.app.middleware_stack
+        while hasattr(current_app, "app"):
+            if isinstance(current_app, MetricsMiddleware):
+                app.app.state.metrics_middleware = current_app
+                break
+            current_app = current_app.app
+    ```
+
+3.  **Access it from an endpoint**:
+
+    Now you can access the instance from any request object.
+
+    ```python
+    # main.py
+
+    @app.get("/metrics")
+    async def get_metrics(request: Request):
+        if hasattr(request.app.state, "metrics_middleware"):
+            metrics = request.app.state.metrics_middleware.get_metrics()
+            return JSONResponse(content=metrics)
+        return JSONResponse(content={"error": "Metrics not available"}, status_code=404)
+    ```
+
 ## Docker Deployment
 
 ```bash
@@ -249,7 +296,20 @@ AI_MODELS_CONFIG["models"].append({
 ## Monitoring
 
 - **Health Check**: `GET /health`
-- **Metrics**: `GET /metrics` 
+- **Metrics**: `GET /metrics` - Provides application and request metrics.
+  ```json
+  {
+    "requests_total": 10,
+    "requests_by_method": { "GET": 10 },
+    "requests_by_status": { "200": 10 },
+    "active_requests": 1,
+    "errors_total": 0,
+    "avg_response_time": 0.012,
+    "max_response_time": 0.05,
+    "min_response_time": 0.005,
+    "error_rate": 0.0
+  }
+  ```
 - **Model Health**: `GET /api/v1/models/{name}/health`
 - **Usage Stats**: `GET /api/v1/stats`
 
@@ -281,9 +341,9 @@ This project is licensed under the MIT License.
 ## Support
 
 - **Documentation**: [NzrApi Framework Docs](https://nzrapi.readthedocs.io)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/nzrapi/issues)
+- **Issues**: [GitHub Issues](https://https://github.com/suportly/nzrapi_framework/issues)
 - **Community**: [Discord Server](https://discord.gg/nzrapi)
 
 ---
 
-Built with ❤️ using [NzrApi Framework](https://github.com/yourusername/nzrapi)
+Built with ❤️ using [NzrApi Framework](https://https://github.com/suportly/nzrapi_framework)

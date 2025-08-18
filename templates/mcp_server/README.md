@@ -285,9 +285,9 @@ This project is licensed under the MIT License.
 ## Support
 
 - **Documentation**: [NzrApi Framework Docs](https://nzrapi.readthedocs.io)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/nzrapi/issues)
+- **Issues**: [GitHub Issues](https://https://github.com/suportly/nzrapi_framework/issues)
 - **Community**: [Discord Server](https://discord.gg/nzrapi)
 
 ---
 
-Built with ❤️ using [NzrApi Framework](https://github.com/yourusername/nzrapi)
+Built with ❤️ using [NzrApi Framework](https://github.com/suportly/nzrapi_framework)

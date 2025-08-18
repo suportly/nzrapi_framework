@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import sys
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
@@ -19,19 +20,50 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm, Prompt
 from rich.syntax import Syntax
 from rich.table import Table
+from typer import Context
+
+console = Console()
+
+
+class TemplateEnum(str, Enum):
+    mcp_server = "mcp_server"
+    api_server = "api_server"
+
 
 app = typer.Typer(
     name="nzrapi",
-    help="nzrApi Framework CLI - Build AI APIs with MCP support",
+    help="nzrApi Framework CLI. Runs the development server by default if no command is specified.",
     rich_markup_mode="rich",
+    invoke_without_command=True,
 )
-console = Console()
+
+
+@app.callback()
+def main(ctx: Context):
+    """
+    nzrApi Framework CLI
+    """
+    if ctx.invoked_subcommand is None:
+        # Default to run command
+        if _is_nzrapi_project():
+            run(
+                host="0.0.0.0",
+                port=8000,
+                reload=False,
+                workers=1,
+                log_level="info",
+                config_file=None,
+            )
+        else:
+            console.print(
+                "[yellow]Not in a nzrApi project. Use 'nzrapi new' to create one or 'nzrapi --help' for help.[/yellow]"
+            )
 
 
 @app.command()
 def new(
     project_name: str = typer.Argument(..., help="Name of the new project"),
-    template: str = typer.Option("mcp_server", help="Template to use"),
+    template: TemplateEnum = typer.Option(TemplateEnum.mcp_server, help="Template to use", case_sensitive=False),
     directory: Optional[str] = typer.Option(None, "--dir", "-d", help="Target directory"),
     force: bool = typer.Option(False, "--force", "-f", help="Force creation even if directory exists"),
     interactive: bool = typer.Option(True, "--interactive/--no-interactive", help="Interactive mode"),
@@ -52,9 +84,9 @@ def new(
     # Interactive configuration
     config = {}
     if interactive:
-        config = _interactive_project_config(project_name, template)
+        config = _interactive_project_config(project_name, template.value)
     else:
-        config = _default_project_config(project_name, template)
+        config = _default_project_config(project_name, template.value)
 
     # Create project
     with Progress(
@@ -72,7 +104,7 @@ def new(
             "default_model": config.get("default_model", "mock"),
         }
 
-        _create_project_from_template(target_dir, template, context, config)
+        _create_project_from_template(target_dir, template.value, context, config)
 
         progress.update(task, description="Installing dependencies...")
         _install_dependencies(target_dir, config.get("install_deps", True))
@@ -92,7 +124,7 @@ def new(
 Next steps:
 1. cd {project_name}
 2. nzrapi run --reload
-3. Visit http://localhost:8000/health
+3. Visit http://localhost:8000/
 
 Documentation: https://nzrapi.readthedocs.io
         """,
@@ -118,16 +150,21 @@ def run(
         console.print("[red]Error: Not a nzrApi project. Run 'nzrapi new' to create one.[/red]")
         raise typer.Exit(1)
 
+    # Set app_dir to the current directory for uvicorn
+    app_dir = "."
+
     # Build uvicorn command
     cmd = [
         "uvicorn",
-        "main:app",
+        f"{Path.cwd().name}.main:app",
         "--host",
         host,
         "--port",
         str(port),
         "--log-level",
         log_level,
+        "--app-dir",
+        app_dir,
     ]
 
     if reload:
@@ -308,15 +345,16 @@ def _interactive_project_config(project_name: str, template: str) -> dict:
         "description": Prompt.ask("Project description", default="AI API built with nzrApi"),
         "author": Prompt.ask("Author name", default="Your Name"),
         "email": Prompt.ask("Author email", default="your.email@example.com"),
-        "python_version": Prompt.ask("Python version", default="3.8"),
+        "python_version": Prompt.ask("Python version", default="3.11"),
         "install_deps": Confirm.ask("Install dependencies?", default=True),
         "init_git": Confirm.ask("Initialize git repository?", default=True),
     }
 
     # Template-specific configuration
-    if template == "mcp_server":
+    if template == TemplateEnum.mcp_server:
         config.update(
             {
+                "description": Prompt.ask("Project description", default="AI API built with nzrApi"),
                 "include_database": Confirm.ask("Include database support?", default=True),
                 "include_auth": Confirm.ask("Include authentication?", default=False),
                 "include_cors": Confirm.ask("Include CORS middleware?", default=True),
@@ -327,26 +365,41 @@ def _interactive_project_config(project_name: str, template: str) -> dict:
                 ),
             }
         )
+    elif template == TemplateEnum.api_server:
+        config.update(
+            {
+                "description": Prompt.ask("Project description", default="A generic API built with nzrApi"),
+                "include_database": Confirm.ask("Include database support?", default=True),
+                "include_auth": Confirm.ask("Include authentication?", default=False),
+                "include_cors": Confirm.ask("Include CORS middleware?", default=True),
+            }
+        )
 
     return config
 
 
 def _default_project_config(project_name: str, template: str) -> dict:
     """Default project configuration"""
-    return {
+    config = {
         "project_name": project_name,
         "template": template,
-        "description": "AI API built with nzrApi",
         "author": "Your Name",
         "email": "your.email@example.com",
-        "python_version": "3.8",
+        "python_version": "3.11",
         "install_deps": True,
         "init_git": True,
         "include_database": True,
         "include_auth": False,
         "include_cors": True,
-        "default_model": "mock",
     }
+
+    if template == TemplateEnum.mcp_server:
+        config["description"] = "AI API built with nzrApi"
+        config["default_model"] = "mock"
+    elif template == TemplateEnum.api_server:
+        config["description"] = "A generic API built with nzrApi"
+
+    return config
 
 
 def _create_project_from_template(target_dir: Path, template: str, context: dict, config: dict):

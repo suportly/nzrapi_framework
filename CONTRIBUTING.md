@@ -27,8 +27,8 @@ We welcome feature requests! Please:
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- Git
+- **Python 3.11 or higher**
+- **Git**
 
 ### Getting Started
 

@@ -428,7 +428,7 @@ NZRAPI_API_KEY=your-api-key
 ### 3. Docker Deployment
 ```yaml
 # docker-compose.yml
-version: '3.8'
+version: '3.11'
 services:
   nzrapi-api:
     build: .

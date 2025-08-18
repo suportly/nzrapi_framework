@@ -27,14 +27,28 @@ class MCPRequest(BaseModel):
         return v.strip()
 
     model_config = ConfigDict(
+        frozen=True,
+        arbitrary_types_allowed=True,
+        json_encoders={UUID: str},
+        from_attributes=True,
+        use_enum_values=True,
+        validate_assignment=True,
+        extra="forbid",
+        str_strip_whitespace=True,
+        str_min_length=1,
+        str_max_length=1000,
+        title="MCPRequest",
+        str_to_lower=True,
+        protected_namespaces=(),
         json_schema_extra={
             "example": {
+                "request_id": "req_123",
                 "context_id": "conv_123",
                 "model_name": "gpt-4",
                 "payload": {"prompt": "Hello, how are you?", "max_tokens": 100},
                 "metadata": {"user_id": "user_456", "session_id": "sess_789"},
             }
-        }
+        },
     )
 
 
@@ -52,6 +66,7 @@ class MCPResponse(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Response timestamp")
 
     model_config = ConfigDict(
+        protected_namespaces=(),
         json_schema_extra={
             "example": {
                 "request_id": "req_123",
@@ -65,7 +80,7 @@ class MCPResponse(BaseModel):
                 "execution_time": 2.34,
                 "tokens_used": 45,
             }
-        }
+        },
     )
 
 
@@ -169,6 +184,7 @@ class ModelHealth(BaseModel):
         return v
 
     model_config = ConfigDict(
+        protected_namespaces=(),
         json_schema_extra={
             "example": {
                 "model_name": "gpt-4",
@@ -182,7 +198,7 @@ class ModelHealth(BaseModel):
                     "queue_length": 3,
                 },
             }
-        }
+        },
     )
 
 

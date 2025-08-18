@@ -61,16 +61,16 @@ class NzrApiApp:
         database_url: Optional[str] = None,
         debug: bool = False,
         title: str = "NzrApi API",
-        version: str = "1.0.0",
-        openapi_url: Optional[str] = "/openapi.json",
+        version: str = "0.2.0",
         docs_url: Optional[str] = "/docs",
+        docs_openapi_url: Optional[str] = "/openapi.json",
         middleware: Optional[List[Middleware]] = None,
     ):
         self.database_url = database_url
         self.debug = debug
         self.title = title
         self.version = version
-        self.openapi_url = openapi_url
+        self.docs_openapi_url = docs_openapi_url
         self.docs_url = docs_url
         self.openapi_schema: Optional[Dict[str, Any]] = None
 
@@ -106,7 +106,7 @@ class NzrApiApp:
         return self.openapi_schema
 
     async def swagger_ui(self, request: Request) -> HTMLResponse:
-        return get_swagger_ui_html(openapi_url=self.openapi_url, title=self.title)
+        return get_swagger_ui_html(openapi_url=self.docs_openapi_url, title=self.title)
 
     async def openapi_endpoint(self, request: Request) -> StarletteJSONResponse:
         return StarletteJSONResponse(self.openapi())
@@ -180,8 +180,7 @@ class NzrApiApp:
         """Get the Starlette application instance"""
         if self._app is None:
             # Add routes for OpenAPI and Swagger UI if enabled
-            if self.openapi_url:
-                self.router.add_route(self.openapi_url, self.openapi_endpoint, include_in_schema=False)
+            self.router.add_route("/openapi.json", self.openapi_endpoint, include_in_schema=False)
             if self.docs_url:
                 self.router.add_route(self.docs_url, self.swagger_ui, include_in_schema=False)
 

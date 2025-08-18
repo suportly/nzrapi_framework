@@ -204,7 +204,9 @@ class Repository:
         self.session = session
         self.model_class = model_class
 
-    async def _apply_filters(self, stmt, filters: Optional[Dict[str, Any]] = None, filter_expressions: Optional[List[Any]] = None):
+    async def _apply_filters(
+        self, stmt, filters: Optional[Dict[str, Any]] = None, filter_expressions: Optional[List[Any]] = None
+    ):
         if filters:
             for field, value in filters.items():
                 stmt = stmt.where(getattr(self.model_class, field) == value)
@@ -273,7 +275,9 @@ class Repository:
         await self.session.delete(instance)
         await self.session.flush()
 
-    async def count(self, filters: Optional[Dict[str, Any]] = None, filter_expressions: Optional[List[Any]] = None) -> int:
+    async def count(
+        self, filters: Optional[Dict[str, Any]] = None, filter_expressions: Optional[List[Any]] = None
+    ) -> int:
         """Count total records, optionally with filters."""
         from sqlalchemy import func, select
 

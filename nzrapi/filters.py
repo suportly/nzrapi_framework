@@ -14,7 +14,7 @@ class QueryParameterFilterBackend(BaseFilterBackend):
 
     def filter_queryset(self, request: Request, view) -> dict:
         filter_kwargs = {}
-        if hasattr(view, 'filterset_fields'):
+        if hasattr(view, "filterset_fields"):
             for field in view.filterset_fields:
                 if value := request.query_params.get(field):
                     filter_kwargs[field] = value
@@ -26,7 +26,7 @@ class SearchFilter(BaseFilterBackend):
 
     def filter_queryset(self, request: Request, view):
         search_term = request.query_params.get(self.search_param)
-        if not search_term or not hasattr(view, 'search_fields'):
+        if not search_term or not hasattr(view, "search_fields"):
             return []
 
         from sqlalchemy import or_
@@ -49,6 +49,7 @@ class OrderingFilter(BaseFilterBackend):
     """
     A filter backend that handles ordering of the queryset.
     """
+
     ordering_param = "ordering"
 
     def filter_queryset(self, request: Request, view):

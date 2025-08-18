@@ -123,9 +123,7 @@ async def test_search_items(client: AsyncClient):
             "description": "A very specific description for searching.",
         },
     )
-    await client.post(
-        "/api/items", json={"name": "Another Item", "description": "Some other description."}
-    )
+    await client.post("/api/items", json={"name": "Another Item", "description": "Some other description."})
 
     # Execution: Search for the unique item by name (case-insensitive)
     response = await client.get("/api/items?search=unique")
@@ -145,10 +143,7 @@ async def test_search_items(client: AsyncClient):
     data_desc = response_desc.json()
     assert data_desc["count"] >= 1
     assert len(data_desc["results"]) >= 1
-    assert (
-        data_desc["results"][0]["description"]
-        == "A very specific description for searching."
-    )
+    assert data_desc["results"][0]["description"] == "A very specific description for searching."
 
     # Execution: Search for a term that doesn't exist
     response_none = await client.get("/api/items?search=NonExistentTerm")

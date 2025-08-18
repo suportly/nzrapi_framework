@@ -143,7 +143,7 @@ class ListField(Field):
                 errors.append({index: e.args[0]})
 
         if errors:
-            raise ValidationError(errors={'errors': errors})
+            raise ValidationError(errors={"errors": errors})
 
         return internal_list
 

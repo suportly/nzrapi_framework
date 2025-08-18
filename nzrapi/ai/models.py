@@ -309,10 +309,13 @@ class OpenAIModel(AIModel):
         """Initialize OpenAI client"""
         if not self.api_key:
             import os
+
             self.api_key = os.getenv("OPENAI_API_KEY")
-        
+
         if not self.api_key:
-            raise RuntimeError("OpenAI API key is not configured. Set it in the model config or as an environment variable OPENAI_API_KEY.")
+            raise RuntimeError(
+                "OpenAI API key is not configured. Set it in the model config or as an environment variable OPENAI_API_KEY."
+            )
 
         try:
             self.client = AsyncOpenAI(api_key=self.api_key)

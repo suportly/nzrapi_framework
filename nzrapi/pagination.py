@@ -40,9 +40,4 @@ class PageNumberPagination:
         return (self.page - 1) * self.limit
 
     def get_paginated_response(self, data, total_count) -> JSONResponse:
-        return JSONResponse({
-            "count": total_count,
-            "page": self.page,
-            "limit": self.limit,
-            "results": data
-        })
+        return JSONResponse({"count": total_count, "page": self.page, "limit": self.limit, "results": data})

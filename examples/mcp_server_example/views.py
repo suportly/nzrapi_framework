@@ -72,17 +72,13 @@ async def mcp_predict(request: Request, model_name: str):
         # Get AI model
         ai_model = request.app.state.nzrapi_app.ai_registry.get_model(model_name)
         if not ai_model:
-            return JSONResponse(
-                {"error": f"Model '{model_name}' not found"}, status_code=404
-            )
+            return JSONResponse({"error": f"Model '{model_name}' not found"}, status_code=404)
 
         # Retrieve context if provided
         context = {}
         if mcp_request.context_id:
             async with request.app.state.nzrapi_app.get_db_session() as session:
-                conversation = await ConversationHistory.get_latest_by_context(
-                    session, mcp_request.context_id
-                )
+                conversation = await ConversationHistory.get_latest_by_context(session, mcp_request.context_id)
                 if conversation:
                     try:
                         context = json.loads(conversation.context_data or "{}")
@@ -113,9 +109,7 @@ async def mcp_predict(request: Request, model_name: str):
             await session.commit()
 
         # Update usage stats
-        await _update_usage_stats(
-            request, model_name, execution_time, result.get("tokens_used", 0)
-        )
+        await _update_usage_stats(request, model_name, execution_time, result.get("tokens_used", 0))
 
         # Create MCP response
         response = MCPResponse(
@@ -131,9 +125,7 @@ async def mcp_predict(request: Request, model_name: str):
         return JSONResponse(response.model_dump(mode="json"))
 
     except ValidationError as e:
-        return JSONResponse(
-            {"error": "Validation error", "details": str(e)}, status_code=422
-        )
+        return JSONResponse({"error": "Validation error", "details": str(e)}, status_code=422)
     except ModelNotFoundError as e:
         return JSONResponse({"error": str(e)}, status_code=404)
     except Exception as e:
@@ -150,9 +142,7 @@ async def mcp_predict(request: Request, model_name: str):
                 session.add(conversation)
                 await session.commit()
 
-        return JSONResponse(
-            {"error": "Internal server error", "details": str(e)}, status_code=500
-        )
+        return JSONResponse({"error": "Internal server error", "details": str(e)}, status_code=500)
 
 
 # Convenience chat endpoint
@@ -234,9 +224,7 @@ async def analyze_text(request: Request):
         return response
 
     except Exception as e:
-        return JSONResponse(
-            {"error": "Analysis error", "details": str(e)}, status_code=500
-        )
+        return JSONResponse({"error": "Analysis error", "details": str(e)}, status_code=500)
 
 
 # Model management endpoints
@@ -247,9 +235,7 @@ async def list_models(request: Request):
         models = request.app.state.nzrapi_app.ai_registry.list_models()
         return JSONResponse({"models": models})
     except Exception as e:
-        return JSONResponse(
-            {"error": "Failed to list models", "details": str(e)}, status_code=500
-        )
+        return JSONResponse({"error": "Failed to list models", "details": str(e)}, status_code=500)
 
 
 @router.get("/models/{model_name}")
@@ -258,18 +244,14 @@ async def get_model_info(request: Request, model_name: str):
     try:
         model = request.app.state.nzrapi_app.ai_registry.get_model(model_name)
         if not model:
-            return JSONResponse(
-                {"error": f"Model '{model_name}' not found"}, status_code=404
-            )
+            return JSONResponse({"error": f"Model '{model_name}' not found"}, status_code=404)
 
         info = model.model_info
         stats = model.get_stats()
 
         return JSONResponse({"model_info": info, "statistics": stats})
     except Exception as e:
-        return JSONResponse(
-            {"error": "Failed to get model info", "details": str(e)}, status_code=500
-        )
+        return JSONResponse({"error": "Failed to get model info", "details": str(e)}, status_code=500)
 
 
 @router.get("/models/{model_name}/health")
@@ -278,16 +260,12 @@ async def model_health_check(request: Request, model_name: str):
     try:
         model = request.app.state.nzrapi_app.ai_registry.get_model(model_name)
         if not model:
-            return JSONResponse(
-                {"error": f"Model '{model_name}' not found"}, status_code=404
-            )
+            return JSONResponse({"error": f"Model '{model_name}' not found"}, status_code=404)
 
         health = await model.health_check()
         return JSONResponse(health.model_dump(mode="json"))
     except Exception as e:
-        return JSONResponse(
-            {"error": "Health check failed", "details": str(e)}, status_code=500
-        )
+        return JSONResponse({"error": "Health check failed", "details": str(e)}, status_code=500)
 
 
 # Conversation history endpoints
@@ -296,9 +274,7 @@ async def get_conversation_history(request: Request, context_id: str):
     """Get conversation history for a context"""
     try:
         async with request.app.state.nzrapi_app.get_db_session() as session:
-            conversations = await ConversationHistory.get_by_context_id(
-                session, context_id
-            )
+            conversations = await ConversationHistory.get_by_context_id(session, context_id)
 
             history = []
             for conv in conversations:
@@ -340,9 +316,7 @@ async def get_usage_stats(request: Request):
 
             for model_info in models:
                 model_name = model_info["name"]
-                model_stats = await ModelUsageStats.get_stats_by_model(
-                    session, model_name
-                )
+                model_stats = await ModelUsageStats.get_stats_by_model(session, model_name)
                 stats[model_name] = [
                     {
                         "date": str(stat.date),
@@ -356,15 +330,11 @@ async def get_usage_stats(request: Request):
 
             return JSONResponse({"usage_statistics": stats})
     except Exception as e:
-        return JSONResponse(
-            {"error": "Failed to get usage stats", "details": str(e)}, status_code=500
-        )
+        return JSONResponse({"error": "Failed to get usage stats", "details": str(e)}, status_code=500)
 
 
 # Helper functions
-async def _update_usage_stats(
-    request: Request, model_name: str, execution_time: float, tokens_used: int
-):
+async def _update_usage_stats(request: Request, model_name: str, execution_time: float, tokens_used: int):
     """Update usage statistics for a model"""
     try:
         async with request.app.state.nzrapi_app.get_db_session() as session:

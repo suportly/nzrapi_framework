@@ -29,9 +29,7 @@ class CustomChatModel(AIModel):
         self.is_loaded = True
         print(f"✅ Loaded custom chat model: {self.name}")
 
-    async def predict(
-        self, payload: Dict[str, Any], context: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+    async def predict(self, payload: Dict[str, Any], context: Optional[Dict] = None) -> Dict[str, Any]:
         """Generate chat response with conversation context"""
         if not self.is_loaded:
             raise RuntimeError("Model not loaded")
@@ -42,9 +40,7 @@ class CustomChatModel(AIModel):
 
         # Manage conversation context
         if context_id not in self.conversation_memory:
-            self.conversation_memory[context_id] = [
-                {"role": "system", "content": self.system_prompt}
-            ]
+            self.conversation_memory[context_id] = [{"role": "system", "content": self.system_prompt}]
 
         # Add user message to context
         conversation = self.conversation_memory[context_id]
@@ -53,9 +49,7 @@ class CustomChatModel(AIModel):
         # Trim context if too long
         if len(conversation) > self.max_context_length:
             # Keep system message and recent messages
-            conversation = [conversation[0]] + conversation[
-                -(self.max_context_length - 1) :
-            ]
+            conversation = [conversation[0]] + conversation[-(self.max_context_length - 1) :]
             self.conversation_memory[context_id] = conversation
 
         # Generate response (this would call your actual AI model)
@@ -125,9 +119,7 @@ class TextAnalysisModel(AIModel):
 
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
-        self.analysis_types = config.get(
-            "analysis_types", ["sentiment", "keywords", "summary", "entities"]
-        )
+        self.analysis_types = config.get("analysis_types", ["sentiment", "keywords", "summary", "entities"])
 
     async def load_model(self) -> None:
         """Load the text analysis model"""
@@ -135,9 +127,7 @@ class TextAnalysisModel(AIModel):
         self.is_loaded = True
         print(f"✅ Loaded text analysis model: {self.name}")
 
-    async def predict(
-        self, payload: Dict[str, Any], context: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+    async def predict(self, payload: Dict[str, Any], context: Optional[Dict] = None) -> Dict[str, Any]:
         """Analyze text and return structured results"""
         if not self.is_loaded:
             raise RuntimeError("Model not loaded")
@@ -275,9 +265,7 @@ class TextAnalysisModel(AIModel):
         entities = []
 
         # Extract email addresses
-        emails = re.findall(
-            r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", text
-        )
+        emails = re.findall(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", text)
         for email in emails:
             entities.append({"text": email, "type": "EMAIL"})
 

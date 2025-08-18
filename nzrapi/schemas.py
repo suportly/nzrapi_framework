@@ -54,22 +54,24 @@ class NzrApiSchemaGenerator(SchemaGenerator):
         if "parameters" not in operation:
             operation["parameters"] = []
 
-        operation["parameters"].extend([
-            {
-                "name": "page",
-                "in": "query",
-                "required": False,
-                "description": "A page number within the paginated result set.",
-                "schema": {"type": "integer", "default": 1},
-            },
-            {
-                "name": "limit",
-                "in": "query",
-                "required": False,
-                "description": "Number of results to return per page.",
-                "schema": {"type": "integer"},
-            },
-        ])
+        operation["parameters"].extend(
+            [
+                {
+                    "name": "page",
+                    "in": "query",
+                    "required": False,
+                    "description": "A page number within the paginated result set.",
+                    "schema": {"type": "integer", "default": 1},
+                },
+                {
+                    "name": "limit",
+                    "in": "query",
+                    "required": False,
+                    "description": "Number of results to return per page.",
+                    "schema": {"type": "integer"},
+                },
+            ]
+        )
 
     def _add_filter_params(self, operation: Dict[str, Any], view_class: Any):
         filter_backends = getattr(view_class, "filter_backends", [])

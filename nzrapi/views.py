@@ -79,14 +79,14 @@ class GenericAPIView(APIView):
         repository = self.get_repository(session)
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         lookup_value = self.kwargs[lookup_url_kwarg]
-        
+
         # Convert string ID to integer if lookup field is 'id'
         if self.lookup_field == "id":
             try:
                 lookup_value = int(lookup_value)
             except (ValueError, TypeError):
                 raise NotFound()
-                
+
         filter_kwargs = {self.lookup_field: lookup_value}
 
         instance = await repository.find_one(filters=filter_kwargs)

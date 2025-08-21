@@ -3,11 +3,11 @@ from typing import Any, AsyncGenerator, Dict
 
 import pytest
 import pytest_asyncio
-from starlette import status
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from starlette import status
 
 from examples.new_postgres_api.main import app
 from examples.new_postgres_api.models import Category, Order, OrderItem, Product, User, UserRole

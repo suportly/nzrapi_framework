@@ -48,6 +48,16 @@ def transactional(func: Callable) -> Callable:
         if not app.db_manager:
             raise RuntimeError("Database is not configured. Please provide a `database_url` when creating NzrApiApp.")
 
+        # Prefer the per-request session provided by DatabaseMiddleware, if present
+        request_state = getattr(request, "state", None)
+        existing_session = getattr(request_state, "db_session", None) if request_state is not None else None
+
+        if existing_session is not None:
+            async with existing_session.begin():
+                kwargs["session"] = existing_session
+                return await func(self, request, *args, **kwargs)
+
+        # Fallback: create and manage a new session bound to this call only
         async with app.get_db_session() as session:
             async with session.begin():
                 kwargs["session"] = session

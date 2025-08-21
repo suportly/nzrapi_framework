@@ -26,10 +26,17 @@ class APIView:
     def as_view(cls, **initkwargs) -> Callable:
         async def view(request: Request, **kwargs):
             self = cls(**initkwargs)
-            self.request = request
+            # Ensure we always work with nzrapi.requests.Request
+            if isinstance(request, StarletteRequest):
+                wrapped_request = Request(request)
+            else:
+                wrapped_request = request
+            self.request = wrapped_request
             self.kwargs = kwargs
-            return await self.dispatch(request, **kwargs)
+            return await self.dispatch(wrapped_request, **kwargs)
 
+        # Attach metadata for schema generation
+        view.view_class = cls  # type: ignore[attr-defined]
         return view
 
     async def dispatch(self, request: Request, **kwargs) -> Response:
@@ -71,7 +78,16 @@ class GenericAPIView(APIView):
     async def get_object(self, session: AsyncSession) -> Model:
         repository = self.get_repository(session)
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
-        filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        # Convert string ID to integer if lookup field is 'id'
+        if self.lookup_field == "id":
+            try:
+                lookup_value = int(lookup_value)
+            except (ValueError, TypeError):
+                raise NotFound()
+                
+        filter_kwargs = {self.lookup_field: lookup_value}
 
         instance = await repository.find_one(filters=filter_kwargs)
 

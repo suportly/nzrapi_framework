@@ -6,9 +6,10 @@ import asyncio
 import json
 import logging
 import time
+import uuid
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
@@ -20,6 +21,45 @@ from .exceptions import AuthenticationError, RateLimitError
 from .responses import ErrorResponse
 
 logger = logging.getLogger(__name__)
+
+
+def parse_rate_limit(rate_limit_str: str) -> dict:
+    """Parse rate limit string into a dictionary of limits.
+
+    Example input: "1000/day, 100/hour, 10/minute"
+    Returns: {"day": 1000, "hour": 100, "minute": 10}
+
+    Args:
+        rate_limit_str: String containing rate limits in format "value/period"
+
+    Returns:
+        Dictionary with parsed rate limits
+
+    Examples:
+        >>> parse_rate_limit("1000/day, 100/hour")
+        {"day": 1000, "hour": 100}
+
+        >>> parse_rate_limit("50/min, 1000/hour, 10000/day")
+        {"minute": 50, "hour": 1000, "day": 10000}
+    """
+    limits = {}
+    for part in rate_limit_str.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            value_str, period = part.split("/")
+            value = int(value_str.strip())
+            period = period.strip().lower()
+            if period in ["min", "minute", "minutes"]:
+                limits["minute"] = value
+            elif period in ["hour", "hours"]:
+                limits["hour"] = value
+            elif period in ["day", "days"]:
+                limits["day"] = value
+        except (ValueError, AttributeError):
+            continue
+    return limits
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -45,7 +85,6 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # Skip logging for excluded paths
         if request.url.path in self.exclude_paths:
             return await call_next(request)
-
         start_time = time.time()
         request_id = id(request)
 
@@ -114,16 +153,19 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app: ASGIApp,
-        calls_per_minute: int = 60,
-        calls_per_hour: int = 1000,
-        calls_per_day: int = 10000,
+        calls_per_minute: Union[int, str] = 60,
+        calls_per_hour: Union[int, str] = 1000,
+        calls_per_day: Union[int, str] = 10000,
         exclude_paths: Optional[List[str]] = None,
         key_func: Optional[Callable[[Request], str]] = None,
+        rate_limit: Optional[Union[str, Dict[str, int]]] = None,
     ):
         super().__init__(app)
-        self.calls_per_minute = calls_per_minute
-        self.calls_per_hour = calls_per_hour
-        self.calls_per_day = calls_per_day
+        # Parse flexible rate limit configuration
+        m, h, d = self._normalize_limits(calls_per_minute, calls_per_hour, calls_per_day, rate_limit)
+        self.calls_per_minute = m
+        self.calls_per_hour = h
+        self.calls_per_day = d
         self.exclude_paths = set(exclude_paths or ["/health", "/metrics"])
         self.key_func = key_func or self._default_key_func
 
@@ -139,6 +181,75 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         """Default function to extract rate limiting key from request"""
         # Use IP address as default
         return request.client.host if request.client else "unknown"
+
+    @staticmethod
+    def _normalize_limits(
+        calls_per_minute: Union[int, str],
+        calls_per_hour: Union[int, str],
+        calls_per_day: Union[int, str],
+        rate_limit: Optional[Union[str, Dict[str, int]]],
+    ) -> tuple[int, int, int]:
+        """Normalize various rate limit inputs into integers for minute/hour/day.
+
+        Supports:
+        - Separate integer parameters
+        - A single string like "1000/day, 100/hour, 10/minute" (also accepts d/h/m aliases)
+        - A dict like {"day": 1000, "hour": 100, "minute": 10}
+        - Misconfigured case where a string is passed into calls_per_minute
+        """
+        # Defaults
+        m, h, d = 60, 1000, 10000
+
+        def parse_string(s: str) -> tuple[int, int, int]:
+            s = s.strip()
+            if not s:
+                return m, h, d
+            parts = [p.strip() for p in s.replace(";", ",").split(",") if p.strip()]
+            mm, hh, dd = m, h, d
+            for p in parts:
+                # e.g., "10/minute" or "10 m" or "10 per minute"
+                token = p.lower().replace("per ", "/").replace(" ", "/")
+                # split by '/'
+                try:
+                    amount_str, unit = token.split("/", 1)
+                    amount = int(amount_str)
+                except Exception:
+                    # If only a number is given, assume per minute
+                    try:
+                        amount = int(token)
+                        unit = "minute"
+                    except Exception:
+                        continue
+                unit = unit.strip()
+                if unit in {"m", "min", "minute", "minutes"}:
+                    mm = amount
+                elif unit in {"h", "hr", "hour", "hours"}:
+                    hh = amount
+                elif unit in {"d", "day", "days"}:
+                    dd = amount
+            return mm, hh, dd
+
+        if isinstance(rate_limit, dict):
+            m = int(rate_limit.get("minute", m))
+            h = int(rate_limit.get("hour", h))
+            d = int(rate_limit.get("day", d))
+            return m, h, d
+        elif isinstance(rate_limit, str):
+            return parse_string(rate_limit)
+
+        # Handle strings passed into individual params
+        if isinstance(calls_per_minute, str) or isinstance(calls_per_hour, str) or isinstance(calls_per_day, str):
+            # If any param is a string, try to parse a combined format from the minute param
+            base = (
+                calls_per_minute
+                if isinstance(calls_per_minute, str)
+                else (calls_per_hour if isinstance(calls_per_hour, str) else calls_per_day)
+            )
+            mm, hh, dd = parse_string(str(base))
+            return mm, hh, dd
+
+        # Fallback to provided integers
+        return int(calls_per_minute), int(calls_per_hour), int(calls_per_day)
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Apply rate limiting"""
@@ -469,6 +580,98 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         }
 
 
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware that adds a unique request ID to each request.
+
+    The request ID can be used for tracing requests across services.
+    """
+
+    def __init__(
+        self,
+        app: ASGIApp,
+        header_name: str = "X-Request-ID",
+        id_gen: Callable[[], str] = None,
+    ):
+        super().__init__(app)
+        self.header_name = header_name
+        self.id_gen = id_gen or (lambda: str(uuid.uuid4()))
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        """Process the request and add a request ID if not present."""
+        # Get request ID from headers or generate a new one
+        request_id = request.headers.get(self.header_name) or self.id_gen()
+
+        # Add request ID to request state
+        request.state.request_id = request_id
+
+        # Process the request
+        response = await call_next(request)
+
+        # Add request ID to response headers
+        response.headers[self.header_name] = request_id
+
+        return response
+
+
+class TimingMiddleware(BaseHTTPMiddleware):
+    """Middleware that adds X-Process-Time header to responses."""
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        start_time = time.time()
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        response.headers["X-Process-Time"] = str(process_time)
+        return response
+
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    """Middleware for logging HTTP requests and responses."""
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Log request
+        logger.info(
+            "Request started",
+            extra={
+                "request": {
+                    "method": request.method,
+                    "url": str(request.url),
+                    "headers": dict(request.headers),
+                    "client": request.client.host if request.client else None,
+                },
+                "request_id": getattr(request.state, "request_id", None),
+            },
+        )
+
+        try:
+            response = await call_next(request)
+
+            # Log response
+            logger.info(
+                "Request completed",
+                extra={
+                    "request_id": getattr(request.state, "request_id", None),
+                    "response": {
+                        "status_code": response.status_code,
+                        "headers": dict(response.headers),
+                    },
+                },
+            )
+
+            return response
+
+        except Exception as e:
+            logger.exception(
+                "Request failed",
+                extra={
+                    "request_id": getattr(request.state, "request_id", None),
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
+            raise
+
+
 # Middleware factory functions
 def create_cors_middleware(app: ASGIApp, **kwargs) -> CORSMiddleware:
     """Create CORS middleware with sensible defaults"""
@@ -483,10 +686,20 @@ def create_cors_middleware(app: ASGIApp, **kwargs) -> CORSMiddleware:
 
 
 def create_rate_limit_middleware(
-    calls_per_minute: int = 60, calls_per_hour: int = 1000, **kwargs
+    calls_per_minute: Union[int, str] = 60,
+    calls_per_hour: Union[int, str] = 1000,
+    calls_per_day: Union[int, str] = 10000,
+    rate_limit: Optional[Union[str, Dict[str, int]]] = None,
+    **kwargs,
 ) -> RateLimitMiddleware:
-    """Create rate limiting middleware with defaults"""
-    return RateLimitMiddleware(calls_per_minute=calls_per_minute, calls_per_hour=calls_per_hour, **kwargs)
+    """Create rate limiting middleware with defaults and flexible input formats."""
+    return RateLimitMiddleware(
+        calls_per_minute=calls_per_minute,
+        calls_per_hour=calls_per_hour,
+        calls_per_day=calls_per_day,
+        rate_limit=rate_limit,
+        **kwargs,
+    )
 
 
 def create_auth_middleware(secret_key: str, **kwargs) -> AuthenticationMiddleware:

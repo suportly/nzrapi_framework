@@ -9,6 +9,19 @@ from urllib.parse import parse_qs
 from starlette.requests import Request as StarletteRequest
 
 
+class AnonymousUser:
+    """Lightweight anonymous user representation.
+
+    Provides attributes commonly checked by permission classes without
+    requiring Starlette's AuthenticationMiddleware to be installed.
+    """
+
+    def __init__(self):
+        self.is_authenticated: bool = False
+        self.id: Optional[Any] = None
+        self.role: Optional[str] = None
+
+
 class Request:
     """Enhanced request class with additional functionality for AI APIs"""
 
@@ -98,6 +111,31 @@ class Request:
     def is_authenticated(self) -> bool:
         """Check if request is authenticated"""
         return hasattr(self, "user") and self.user is not None
+
+    @property
+    def user(self) -> Any:
+        """Return the authenticated user if available, else an anonymous user.
+
+        Preference order:
+        1. User set by our middleware at `request.state.user`.
+        2. User provided by Starlette's AuthenticationMiddleware (if present).
+        3. Fallback to AnonymousUser instance.
+        """
+        # 1) Prefer user set by our middleware
+        state_user = getattr(self._request.state, "user", None)
+        if state_user is not None:
+            return state_user
+
+        # 2) Try Starlette's AuthenticationMiddleware if available, avoid assertion
+        try:
+            if "user" in self._request.scope:
+                return getattr(self._request, "user")
+        except Exception:
+            # If Starlette asserts or any error occurs, fall back to anonymous
+            pass
+
+        # 3) Anonymous fallback
+        return AnonymousUser()
 
     def __getattr__(self, name: str) -> Any:
         """Delegate to underlying Starlette request"""

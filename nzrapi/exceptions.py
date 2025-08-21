@@ -48,8 +48,10 @@ class ModelNotFoundError(NotFound):
 class AuthenticationError(NzrApiException):
     """Raised when authentication fails"""
 
-    def __init__(self, message: str = "Authentication failed"):
+    def __init__(self, message: str = "Authentication failed", headers: Optional[Dict[str, str]] = None):
         super().__init__(message, status_code=401)
+        # Optional headers such as WWW-Authenticate for auth challenges
+        self.headers: Dict[str, str] = headers or {}
 
 
 class PermissionDenied(NzrApiException):

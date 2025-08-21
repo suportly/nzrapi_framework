@@ -13,12 +13,13 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse
 from starlette.responses import JSONResponse as StarletteJSONResponse
 from starlette.responses import Response
-from starlette.routing import Route
-from starlette.types import Receive, Scope, Send
+from starlette.routing import Route, WebSocketRoute
+from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
 from .ai.registry import AIRegistry
 from .db import DatabaseManager
+from .db.manager import DatabaseMiddleware
 from .exceptions import NzrApiException
 from .responses import ErrorResponse
 from .routing import Router
@@ -29,28 +30,31 @@ def get_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
     html = f"""
     <!DOCTYPE html>
     <html>
-    <head>
-        <title>{title} - Swagger UI</title>
-        <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@3/swagger-ui.css">
-    </head>
-    <body>
-        <div id="swagger-ui"></div>
-        <script src="https://unpkg.com/swagger-ui-dist@3/swagger-ui-bundle.js"></script>
-        <script>
-            const ui = SwaggerUIBundle({{
-                url: '{openapi_url}',
-                dom_id: '#swagger-ui',
-                presets: [
-                    SwaggerUIBundle.presets.apis,
-                    SwaggerUIBundle.SwaggerUIStandalonePreset
-                ],
-                layout: 'BaseLayout'
-            }})
-        </script>
-    </body>
+        <head>
+            <title>{title} - Swagger UUI</title>
+            <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" />
+        </head>
+        <body>
+            <div id="swagger-ui"></div>
+            <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js" crossorigin></script>
+            <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js" crossorigin></script>
+            <script>            
+                window.onload = () => {{
+                    window.ui = SwaggerUIBundle({{
+                        url: '{openapi_url}',
+                        dom_id: '#swagger-ui',
+                        presets: [
+                        SwaggerUIBundle.presets.apis,
+                        SwaggerUIStandalonePreset
+                        ],
+                        layout: 'StandaloneLayout',
+                    }});
+                }};
+            </script>
+        </body>
     </html>
     """
-    return HTMLResponse(html)
+    return HTMLResponse(content=html)
 
 
 class NzrApiApp:
@@ -62,14 +66,44 @@ class NzrApiApp:
         debug: bool = False,
         title: str = "NzrApi API",
         version: str = "0.2.1",
+        description: Optional[str] = None,
         docs_url: Optional[str] = "/docs",
         docs_openapi_url: Optional[str] = "/openapi.json",
         middleware: Optional[List[Middleware]] = None,
     ):
+        """
+        Initialize NzrApi application with clean middleware configuration.
+
+        Args:
+            database_url: Database connection URL for async SQLAlchemy
+            debug: Enable debug mode with detailed logging
+            title: API title for documentation
+            version: API version
+            description: API description for documentation
+            docs_url: URL path for Swagger UI documentation
+            docs_openapi_url: URL path for OpenAPI JSON schema
+            middleware: List of Starlette Middleware instances to configure.
+                       Example:
+                       middleware=[
+                           Middleware(RequestIDMiddleware),
+                           Middleware(TimingMiddleware),
+                           Middleware(CORSMiddleware, allow_origins=["*"])
+                       ]
+
+        Example:
+            >>> app = NzrApiApp(
+            ...     title="My API",
+            ...     middleware=[
+            ...         Middleware(RequestIDMiddleware),
+            ...         Middleware(CORSMiddleware, allow_origins=["*"])
+            ...     ]
+            ... )
+        """
         self.database_url = database_url
         self.debug = debug
         self.title = title
         self.version = version
+        self.description = description
         self.docs_openapi_url = docs_openapi_url
         self.docs_url = docs_url
         self.openapi_schema: Optional[Dict[str, Any]] = None
@@ -101,7 +135,9 @@ class NzrApiApp:
 
     def openapi(self) -> Dict[str, Any]:
         if self.openapi_schema is None:
-            schema_generator = NzrApiSchemaGenerator({"info": {"title": self.title, "version": self.version}})
+            schema_generator = NzrApiSchemaGenerator(
+                {"title": self.title, "version": self.version, "description": self.description}
+            )
             self.openapi_schema = schema_generator.get_schema(routes=self.router.routes)
         return self.openapi_schema
 
@@ -188,6 +224,28 @@ class NzrApiApp:
             self.exception_handlers.setdefault(NzrApiException, self._handle_nzrapi_exception)
             self.exception_handlers.setdefault(Exception, self._handle_generic_exception)
 
+            # Ensure database middleware is present when database is configured
+            if self.db_manager:
+                has_db_middleware = any(middleware.cls is DatabaseMiddleware for middleware in self.middleware_stack)
+                if not has_db_middleware:
+                    self.middleware_stack.append(Middleware(DatabaseMiddleware, db_manager=self.db_manager))
+
+            # Define middleware to inject NzrApiApp into WebSocket state
+            class WebSocketStateMiddleware:
+                def __init__(self, app: ASGIApp, nzrapi_app: "NzrApiApp") -> None:
+                    self.app = app
+                    self.nzrapi_app = nzrapi_app
+
+                async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+                    if scope["type"] == "websocket":
+                        if "state" not in scope or scope["state"] is None:
+                            scope["state"] = {}
+                        scope["state"]["nzrapi_app"] = self.nzrapi_app
+                    await self.app(scope, receive, send)
+
+            # Add the WebSocket state middleware via Starlette's configuration
+            self.middleware_stack.append(Middleware(WebSocketStateMiddleware, nzrapi_app=self))
+
             self._app = Starlette(
                 debug=self.debug,
                 routes=self.router.routes,
@@ -231,21 +289,25 @@ class NzrApiApp:
 
     # Convenience methods for adding routes directly to the app
     def get(self, path: str, **kwargs):
-        """Register GET route on main router"""
+        """Register GET route on main router with type safety"""
         return self.router.get(path, **kwargs)
 
     def post(self, path: str, **kwargs):
-        """Register POST route on main router"""
+        """Register POST route on main router with type safety"""
         return self.router.post(path, **kwargs)
 
     def put(self, path: str, **kwargs):
-        """Register PUT route on main router"""
+        """Register PUT route on main router with type safety"""
         return self.router.put(path, **kwargs)
 
     def patch(self, path: str, **kwargs):
-        """Register PATCH route on main router"""
+        """Register PATCH route on main router with type safety"""
         return self.router.patch(path, **kwargs)
 
     def delete(self, path: str, **kwargs):
-        """Register DELETE route on main router"""
+        """Register DELETE route on main router with type safety"""
         return self.router.delete(path, **kwargs)
+
+    def websocket(self, path: str, **kwargs):
+        """Register WebSocket route on main router"""
+        return self.router.websocket(path, **kwargs)

@@ -25,3 +25,27 @@ class IsAuthenticated(BasePermission):
 
     async def has_permission(self, request: Request, view) -> bool:
         return request.user is not None and request.user.is_authenticated
+
+
+class IsAdminUser(BasePermission):
+    """Allows access only to admin users."""
+
+    async def has_permission(self, request: Request, view) -> bool:
+        return (
+            request.user is not None
+            and request.user.is_authenticated
+            and getattr(request.user, "role", None) == "admin"
+        )
+
+
+class IsAuthenticatedOrReadOnly(BasePermission):
+    """Allows authenticated users full access, or read-only for unauthenticated."""
+
+    async def has_permission(self, request: Request, view) -> bool:
+        if request.method in SAFE_METHODS:
+            return True
+        return request.user is not None and request.user.is_authenticated
+
+
+# HTTP methods considered safe (read-only)
+SAFE_METHODS = ("GET", "HEAD", "OPTIONS")

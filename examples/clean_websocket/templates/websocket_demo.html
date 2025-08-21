@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Demo - Clean Architecture</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .section {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .input-group {
+            margin-bottom: 10px;
+        }
+        input[type="text"], button {
+            padding: 8px 12px;
+            margin: 5px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .messages {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .status {
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .message {
+            margin: 2px 0;
+            padding: 2px;
+        }
+        .message.sent {
+            color: #007bff;
+        }
+        .message.received {
+            color: #28a745;
+        }
+        .message.error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔌 WebSocket Demo - Clean Architecture</h1>
+    <p>This demo showcases clean WebSocket handling with proper separation of concerns.</p>
+
+    <div class="container">
+        <!-- Connection Status -->
+        <div class="section">
+            <h3>Connection Status</h3>
+            <div id="status" class="status disconnected">Disconnected</div>
+            <button id="connectBtn" onclick="connect()">Connect</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+        </div>
+
+        <!-- Echo Test -->
+        <div class="section">
+            <h3>Echo Test</h3>
+            <div class="input-group">
+                <input type="text" id="echoInput" placeholder="Message to echo" />
+                <button onclick="sendEcho()" disabled id="echoBtn">Send Echo</button>
+            </div>
+            <div class="messages" id="echoMessages"></div>
+        </div>
+
+        <!-- Broadcast Test -->
+        <div class="section">
+            <h3>Broadcast Test</h3>
+            <div class="input-group">
+                <input type="text" id="broadcastInput" placeholder="Message to broadcast" />
+                <button onclick="sendBroadcast()" disabled id="broadcastBtn">Send Broadcast</button>
+            </div>
+            <div class="messages" id="broadcastMessages"></div>
+        </div>
+
+        <!-- AI Streaming Test -->
+        <div class="section">
+            <h3>AI Streaming Test</h3>
+            <div class="input-group">
+                <input type="text" id="aiInput" placeholder="Ask AI a question" />
+                <button onclick="sendAIRequest()" disabled id="aiBtn">Ask AI</button>
+            </div>
+            <div class="messages" id="aiMessages"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/websocket_client.js"></script>
+</body>
+</html>

@@ -10,10 +10,11 @@ import subprocess
 import sys
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import jinja2
 import typer
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -153,10 +154,16 @@ def run(
     # Set app_dir to the current directory for uvicorn
     app_dir = "."
 
+    # Determine app target based on current directory layout
+    if Path("main.py").exists():
+        app_target = "main:app"
+    else:
+        app_target = f"{Path.cwd().name}.main:app"
+
     # Build uvicorn command
     cmd = [
         "uvicorn",
-        f"{Path.cwd().name}.main:app",
+        app_target,
         "--host",
         host,
         "--port",
@@ -286,34 +293,65 @@ def docs(
         "-o",
         help="Output file for the OpenAPI schema",
     ),
+    source: str = typer.Option(
+        "app",
+        "--source",
+        "-s",
+        help="Schema source: 'app' (use app.openapi) or 'ai' (use an LLM to infer schema)",
+        case_sensitive=False,
+    ),
+    provider: Optional[str] = typer.Option(
+        None,
+        "--provider",
+        help="AI provider when --source ai (openai|gemini). If omitted, auto-detects by available API key.",
+    ),
+    model: Optional[str] = typer.Option(
+        None,
+        "--model",
+        help="Model name for AI provider. E.g., gpt-4o-mini for OpenAI, gemini-1.5-pro for Gemini.",
+    ),
 ):
-    """Generate the OpenAPI documentation file."""
-    console.print(f"[cyan]Generating OpenAPI schema to {output}...[/cyan]")
+    """Generate the OpenAPI documentation file.
+
+    - source=app: uses app.openapi() and all registered routes (default).
+    - source=ai: uses an AI model (OpenAI or Gemini) to infer OpenAPI from project files.
+    """
+    console.print(f"[cyan]Generating OpenAPI schema to {output} (source={source})...[/cyan]")
 
     if not _is_nzrapi_project():
         console.print("[red]Error: This command must be run inside a nzrApi project.[/red]")
         raise typer.Exit(1)
 
-    try:
-        # Add the current directory to the path to find main.py
-        sys.path.insert(0, str(Path.cwd()))
+    if source.lower() == "ai":
+        try:
+            openapi_schema = _generate_openapi_via_ai(Path.cwd(), provider=provider, model=model)
+            output_path = Path(output)
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(openapi_schema, f, indent=2)
+            console.print(
+                Panel(
+                    f"✅ OpenAPI schema (AI) saved to [bold green]{output_path}[/bold green]",
+                    title="Success",
+                    border_style="green",
+                )
+            )
+        except Exception as e:
+            console.print(f"[red]AI schema generation failed: {e}[/red]")
+            raise typer.Exit(1)
+        return
 
-        # Dynamically import the app from main.py
+    # Default: use app.openapi()
+    try:
+        sys.path.insert(0, str(Path.cwd()))
         main_module = importlib.import_module("main")
         app_instance = getattr(main_module, "app", None)
-
         if not app_instance or not hasattr(app_instance, "openapi"):
             console.print("[red]Error: Could not find a valid nzrApi 'app' instance in main.py.[/red]")
             raise typer.Exit(1)
-
-        # Generate the OpenAPI schema
         openapi_schema = app_instance.openapi()
-
-        # Write the schema to the output file
         output_path = Path(output)
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(openapi_schema, f, indent=2)
-
         console.print(
             Panel(
                 f"✅ OpenAPI schema saved to [bold green]{output_path}[/bold green]",
@@ -321,7 +359,6 @@ def docs(
                 border_style="green",
             )
         )
-
     except ImportError:
         console.print("[red]Error: Failed to import 'main.py'. Make sure it exists and is accessible.[/red]")
         raise typer.Exit(1)
@@ -329,9 +366,126 @@ def docs(
         console.print(f"[red]An unexpected error occurred: {e}[/red]")
         raise typer.Exit(1)
     finally:
-        # Clean up sys.path
         if str(Path.cwd()) in sys.path:
             sys.path.remove(str(Path.cwd()))
+
+
+def _read_project_sources(base_dir: Path) -> Dict[str, str]:
+    """Read key project files for AI-based schema inference."""
+    candidates = [
+        base_dir / "main.py",
+        base_dir / "routes.py",
+        base_dir / "views.py",
+        base_dir / "serializers.py",
+        base_dir / "models.py",
+    ]
+    sources: Dict[str, str] = {}
+    for f in candidates:
+        try:
+            if f.exists() and f.is_file():
+                # Limit size to avoid huge prompts
+                content = f.read_text(encoding="utf-8")
+                if len(content) > 100_000:
+                    content = content[:100_000]
+                sources[f.name] = content
+        except Exception:
+            # Ignore unreadable files
+            pass
+    return sources
+
+
+def _detect_ai_provider(provider: Optional[str]) -> tuple[str, str]:
+    """Detect provider and required API key env var name."""
+    p = (provider or "").lower()
+    if p in {"openai", "oai"}:
+        return "openai", "OPENAI_API_KEY"
+    if p in {"gemini", "google", "googleai"}:
+        return "gemini", "GEMINI_API_KEY"
+    # auto-detect by env
+    if os.getenv("OPENAI_API_KEY"):
+        return "openai", "OPENAI_API_KEY"
+    if os.getenv("GEMINI_API_KEY"):
+        return "gemini", "GEMINI_API_KEY"
+    raise RuntimeError(
+        "No AI provider detected. Set --provider (openai|gemini) or configure OPENAI_API_KEY/GEMINI_API_KEY."
+    )
+
+
+def _generate_openapi_via_ai(
+    base_dir: Path, provider: Optional[str] = None, model: Optional[str] = None
+) -> Dict[str, Any]:
+    """Use an AI provider to infer an OpenAPI schema from project files."""
+    import json as _json
+    import os as _os
+    import urllib.request as _urlreq
+
+    # Load environment variables from .env in the target directory (if present)
+    try:
+        load_dotenv(dotenv_path=base_dir / ".env")
+    except Exception:
+        pass
+
+    prov, key_env = _detect_ai_provider(provider)
+    api_key = _os.getenv(key_env)
+    if not api_key:
+        raise RuntimeError(f"Missing API key: set {key_env} in environment.")
+
+    sources = _read_project_sources(base_dir)
+    if not sources:
+        raise RuntimeError("No project sources found to analyze.")
+
+    system_prompt = (
+        "You are an expert API designer. Read the provided code files and output a valid OpenAPI 3.0 JSON. "
+        "Include all paths, methods, parameters, request/response schemas. Keep it consistent with Starlette-style routing."
+    )
+    user_prompt = {
+        "instruction": "Generate OpenAPI 3.0 JSON strictly as JSON (no commentary).",
+        "files": sources,
+    }
+
+    if prov == "openai":
+        model_name = model or _os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        req_body = _json.dumps(
+            {
+                "model": model_name,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": _json.dumps(user_prompt)},
+                ],
+                "response_format": {"type": "json_object"},
+            }
+        ).encode("utf-8")
+        req = _urlreq.Request(
+            "https://api.openai.com/v1/chat/completions",
+            data=req_body,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with _urlreq.urlopen(req) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))
+        content = data["choices"][0]["message"]["content"]
+        return _json.loads(content)
+
+    # Gemini
+    model_name = model or _os.getenv("GEMINI_MODEL", "gemini-1.5-pro")
+    req_body = _json.dumps(
+        {"contents": [{"role": "user", "parts": [{"text": system_prompt + "\n\n" + _json.dumps(user_prompt)}]}]}
+    ).encode("utf-8")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+    req = _urlreq.Request(
+        url,
+        data=req_body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with _urlreq.urlopen(req) as resp:
+        data = _json.loads(resp.read().decode("utf-8"))
+    # Extract text and parse JSON
+    text = data["candidates"][0]["content"]["parts"][0]["text"]
+    return _json.loads(text)
 
 
 def _interactive_project_config(project_name: str, template: str) -> dict:

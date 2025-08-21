@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nzrapi"
-version = "0.2.1"
+version = "0.3.0"
 description = "Modern async Python framework for AI APIs with native Model Context Protocol (MCP) support"
 authors = [
     {name = "NzrApi Team", email = "alairjt@gmail.com"},
@@ -87,11 +87,11 @@ redis = [
 nzrapi = "nzrapi.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/nzrapi/nzrapi"
+Homepage = "https://github.com/suportly/nzrapi_framework"
 Documentation = "https://nzrapi.readthedocs.io"
-Repository = "https://github.com/nzrapi/nzrapi"
-"Bug Tracker" = "https://github.com/nzrapi/nzrapi/issues"
-Changelog = "https://github.com/nzrapi/nzrapi/blob/main/CHANGELOG.md"
+Repository = "https://github.com/suportly/nzrapi_framework"
+"Bug Tracker" = "https://github.com/suportly/nzrapi_framework/issues"
+Changelog = "https://github.com/suportly/nzrapi_framework/blob/main/CHANGELOG.md"
 
 [tool.hatch.version]
 path = "nzrapi/__init__.py"

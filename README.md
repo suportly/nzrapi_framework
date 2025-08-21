@@ -361,7 +361,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Built on the excellent FastAPI and Starlette foundations  
+- Built on the excellent Starlette foundations  
 - Designed for seamless n8n integration
 - Community-driven development
 

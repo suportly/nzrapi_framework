@@ -1,11 +1,56 @@
 """
 Response classes for NzrApi framework
+
+This module provides abstractions over Starlette responses,
+so users don't need to import from Starlette directly.
 """
 
 import json
 from typing import Any, Dict, Optional, Union
 
-from starlette.responses import JSONResponse
+from starlette.responses import FileResponse as StarletteFileResponse
+from starlette.responses import HTMLResponse as StarletteHTMLResponse
+from starlette.responses import JSONResponse as StarletteJSONResponse
+from starlette.responses import PlainTextResponse as StarlettePlainTextResponse
+from starlette.responses import RedirectResponse as StarletteRedirectResponse
+from starlette.responses import StreamingResponse as StarletteStreamingResponse
+
+
+# Re-export Starlette responses with nzrapi abstractions
+class JSONResponse(StarletteJSONResponse):
+    """JSON response class - abstraction over Starlette JSONResponse"""
+
+    pass
+
+
+class HTMLResponse(StarletteHTMLResponse):
+    """HTML response class - abstraction over Starlette HTMLResponse"""
+
+    pass
+
+
+class PlainTextResponse(StarlettePlainTextResponse):
+    """Plain text response class - abstraction over Starlette PlainTextResponse"""
+
+    pass
+
+
+class RedirectResponse(StarletteRedirectResponse):
+    """Redirect response class - abstraction over Starlette RedirectResponse"""
+
+    pass
+
+
+class FileResponse(StarletteFileResponse):
+    """File response class - abstraction over Starlette FileResponse"""
+
+    pass
+
+
+class StreamingResponse(StarletteStreamingResponse):
+    """Streaming response class - abstraction over Starlette StreamingResponse"""
+
+    pass
 
 
 class ErrorResponse(JSONResponse):

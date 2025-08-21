@@ -4,11 +4,8 @@ mcp_server_example - AI API Server built with NzrApi Framework
 
 import uvicorn
 from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from starlette.requests import Request
-from starlette.responses import JSONResponse
 
-from nzrapi import NzrApiApp
+from nzrapi import CORSMiddleware, JSONResponse, NzrApiApp, Request
 from nzrapi.middleware import (
     ErrorHandlingMiddleware,
     MetricsMiddleware,

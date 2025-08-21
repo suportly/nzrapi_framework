@@ -5,6 +5,7 @@ Database integration with SQLAlchemy async for NzrApi framework
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Type
 
 from sqlalchemy import (
@@ -19,6 +20,7 @@ from sqlalchemy import (
     create_engine,
     text,
 )
+from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -85,6 +87,19 @@ class DatabaseManager:
     async def connect(self) -> None:
         """Connect to the database"""
         try:
+            # For SQLite file URLs, ensure the parent directory exists to prevent OperationalError
+            if self.database_url.startswith("sqlite"):
+                try:
+                    url = make_url(self.database_url)
+                    db_path = url.database or ""
+                    if db_path and db_path != ":memory:":
+                        p = Path(db_path)
+                        # Create parent dirs (supports relative and absolute paths)
+                        (p.parent if p.is_absolute() else Path.cwd() / p.parent).mkdir(parents=True, exist_ok=True)
+                except Exception:
+                    # Best-effort; fall back to engine creation
+                    pass
+
             self.engine = create_async_engine(self.database_url, **self.engine_kwargs)
             self.session_factory = async_sessionmaker(self.engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -101,6 +116,15 @@ class DatabaseManager:
             await self.engine.dispose()
             self.engine = None
             self.session_factory = None
+
+    async def dispose(self) -> None:
+        """Dispose database engine resources without altering configuration.
+
+        This is a convenience alias for clean shutdowns where you may want to
+        explicitly release connections. It's safe to call multiple times.
+        """
+        if self.engine:
+            await self.engine.dispose()
 
     @asynccontextmanager
     async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
@@ -344,18 +368,41 @@ class TransactionManager:
 
 
 class DatabaseMiddleware:
-    """Middleware to provide database session to requests"""
+    """Middleware to provide database session to requests.
 
-    def __init__(self, db_manager: DatabaseManager):
+    Starlette-compatible signature: __init__(self, app, ..., **kwargs)
+    """
+
+    def __init__(self, app, db_manager: DatabaseManager):
+        self.app = app
         self.db_manager = db_manager
 
-    async def __call__(self, request, call_next):
-        """Middleware implementation"""
-        # Add database session to request
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            # Pass-through for non-HTTP scopes
+            await self.app(scope, receive, send)
+            return
+
+        async def call_next(request):
+            return await self.app(scope, receive, send)
+
+        # Create a lightweight request-like shim to attach state
+        class _State:
+            pass
+
+        class _ReqShim:
+            def __init__(self):
+                self.state = _State()
+
+        req_shim = _ReqShim()
+
+        # Attach a db session for the lifespan of this HTTP request
         async with self.db_manager.get_session() as session:
-            request.state.db_session = session
-            response = await call_next(request)
-            return response
+            # Attach session to scope state so Starlette Request(state=...) can access it
+            if "state" not in scope:
+                scope["state"] = {}
+            scope["state"]["db_session"] = session
+            await self.app(scope, receive, send)
 
 
 # Utility functions

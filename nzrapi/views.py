@@ -141,6 +141,7 @@ class ListModelMixin:
     get_serializer: Callable[..., BaseSerializer]
     filter_backends: list
     pagination_class: Type[PageNumberPagination]
+    request: Request
 
     def filter_queryset(self, backends):
         filter_kwargs = {}

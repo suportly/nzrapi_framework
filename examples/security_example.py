@@ -8,6 +8,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
+from nzrapi import check_password_hash  # 🆕 Função simplificada
+from nzrapi import create_password_hash  # 🆕 Função simplificada
 from nzrapi import (
     APIKeyHeader,
     Depends,
@@ -60,8 +62,10 @@ JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 
-# Create app
-app = NzrApiApp(title="Security Demo API", version="1.0.0")
+# Create app with improved debugging
+app = NzrApiApp(
+    title="Security Demo API", version="1.0.0", debug=True, debug_level="debug"  # 🆕 Melhor debugging para security
+)
 
 
 # Security scheme instances
@@ -79,7 +83,8 @@ def authenticate_user(username: str, password: str) -> Optional[User]:
     if not user_data:
         return None
 
-    if not verify_password(password, user_data["password_hash"], user_data["salt"]):
+    # 🆕 Usando a nova função simplificada de verificação de senha
+    if not check_password_hash(password, user_data["password_hash"]):
         return None
 
     return User(**user_data["user_info"])
@@ -206,14 +211,14 @@ async def register_user(
 
         return ErrorResponse(message="Username already exists", status_code=400)
 
-    # Hash password
-    password_hash, salt = hash_password(password)
+    # 🆕 Hash password usando a nova função simplificada
+    password_hash = create_password_hash(password)
 
     # Create user
     user = User(username=username, email=email, scopes=["read", "write"])
 
-    # Store in database
-    users_db[username] = {"user_info": user.dict(), "password_hash": password_hash, "salt": salt}
+    # Store in database (agora sem salt separado)
+    users_db[username] = {"user_info": user.dict(), "password_hash": password_hash}
 
     # Create API key for the user
     api_key = generate_secret_key()
@@ -427,17 +432,17 @@ app.include_router(router)
 async def create_sample_data():
     """Create sample users and API keys for testing"""
 
-    # Create admin user
-    admin_password_hash, admin_salt = hash_password("admin123")
+    # 🆕 Create admin user usando funções simplificadas
+    admin_password_hash = create_password_hash("admin123")
     admin_user = User(username="admin", email="admin@example.com", scopes=["read", "write", "admin"])
 
-    users_db["admin"] = {"user_info": admin_user.dict(), "password_hash": admin_password_hash, "salt": admin_salt}
+    users_db["admin"] = {"user_info": admin_user.dict(), "password_hash": admin_password_hash}
 
-    # Create regular user
-    user_password_hash, user_salt = hash_password("user123")
+    # 🆕 Create regular user usando funções simplificadas
+    user_password_hash = create_password_hash("user123")
     regular_user = User(username="user", email="user@example.com", scopes=["read", "write"])
 
-    users_db["user"] = {"user_info": regular_user.dict(), "password_hash": user_password_hash, "salt": user_salt}
+    users_db["user"] = {"user_info": regular_user.dict(), "password_hash": user_password_hash}
 
     # Create API keys
     admin_api_key = "admin_" + generate_secret_key()

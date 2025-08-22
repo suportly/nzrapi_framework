@@ -400,6 +400,52 @@ def verify_password(password: str, hashed_password: str, salt: str) -> bool:
     return hmac.compare_digest(test_hash, hashed_password)
 
 
+def create_password_hash(password: str) -> str:
+    """
+    Create hash simples de senha para facilidade de uso.
+
+    Args:
+        password: Senha em texto plano
+
+    Returns:
+        String com hash e salt combinados, prontos para armazenar
+
+    Example:
+        >>> hash_str = create_password_hash("mypassword")
+        >>> print(hash_str)  # "eyJhbGciOiJIUzI1NiJ9:a1b2c3d4e5"
+    """
+    hashed, salt = hash_password(password)
+    return f"{hashed}:{salt}"
+
+
+def check_password_hash(password: str, hash_with_salt: str) -> bool:
+    """
+    Verificar senha contra hash armazenado.
+
+    Args:
+        password: Senha em texto plano
+        hash_with_salt: Hash com salt no formato "hash:salt"
+
+    Returns:
+        True se senha está correta, False caso contrário
+
+    Example:
+        >>> stored = create_password_hash("mypassword")
+        >>> check_password_hash("mypassword", stored)  # True
+        >>> check_password_hash("wrongpassword", stored)  # False
+    """
+    try:
+        hash_part, salt_part = hash_with_salt.split(":", 1)
+        return verify_password(password, hash_part, salt_part)
+    except ValueError:
+        return False
+
+
+# Aliases para facilitar importação
+simple_hash_password = create_password_hash
+simple_verify_password = check_password_hash
+
+
 def create_access_token(
     data: Dict[str, Any], secret_key: str, expires_delta: Optional[timedelta] = None, algorithm: str = "HS256"
 ) -> str:

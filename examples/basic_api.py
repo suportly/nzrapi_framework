@@ -15,8 +15,8 @@ from nzrapi.ai.models import MockAIModel
 from nzrapi.middleware import RateLimitMiddleware, RequestLoggingMiddleware
 from nzrapi.serializers import BaseSerializer, CharField, IntegerField
 
-# Create the application
-app = NzrApiApp(title="Basic NzrApi API", version="1.0.0", debug=True)
+# Create the application with improved debugging
+app = NzrApiApp(title="Basic NzrApi API", version="1.0.0", debug=True, debug_level="verbose")  # 🆕 Melhor debugging
 
 # Add middleware
 app.add_middleware(RequestLoggingMiddleware, log_level="INFO")

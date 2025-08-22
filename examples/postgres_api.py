@@ -18,7 +18,7 @@ from sqlalchemy import Column, Integer, String, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import declarative_base
 
-from nzrapi import JSONResponse, NzrApiApp, Request
+from nzrapi import JSONResponse, NzrApiApp, Request, get_session_reliable, with_db_session
 from nzrapi.serializers import BaseSerializer, CharField, IntegerField
 
 # --- Database Configuration ---
@@ -46,13 +46,15 @@ app = NzrApiApp(
     title="NzrApi PostgreSQL API",
     version="1.0.0",
     debug=True,
+    debug_level="verbose",  # 🆕 Debug melhorado para DB operations
     database_url=DATABASE_URL,
 )
 
 
 # --- API Endpoints ---
 @app.post("/items")
-async def create_item(request: Request):
+@with_db_session  # 🆕 Session automaticamente injetada!
+async def create_item(session: AsyncSession, request: Request):
     """Create a new item in the database."""
     data = await request.json()
     serializer = ItemSerializer(data=data)
@@ -63,38 +65,41 @@ async def create_item(request: Request):
         )
 
     new_item = Item(**serializer.validated_data)
-    async with app.get_db_session() as session:  # type: AsyncSession
-        session.add(new_item)
-        await session.commit()
-        await session.refresh(new_item)
-        return {
-            "id": new_item.id,
-            "name": new_item.name,
-            "description": new_item.description,
-        }
+    # 🆕 Session já disponível, sem context manager!
+    session.add(new_item)
+    await session.commit()
+    await session.refresh(new_item)
+    return {
+        "id": new_item.id,
+        "name": new_item.name,
+        "description": new_item.description,
+    }
 
 
 @app.get("/items")
-async def get_all_items(request: Request):
+@with_db_session  # 🆕 Session automaticamente injetada!
+async def get_all_items(session: AsyncSession, request: Request):
     """Retrieve all items from the database."""
-    async with app.get_db_session() as session:  # type: AsyncSession
-        result = await session.execute(select(Item))
-        items = result.scalars().all()
-        return [{"id": item.id, "name": item.name, "description": item.description} for item in items]
+    # 🆕 Session já disponível diretamente!
+    result = await session.execute(select(Item))
+    items = result.scalars().all()
+    return [{"id": item.id, "name": item.name, "description": item.description} for item in items]
 
 
 @app.get("/items/{item_id}")
-async def get_item(request: Request, item_id: int):
+@with_db_session  # 🆕 Session automaticamente injetada!
+async def get_item(session: AsyncSession, request: Request, item_id: int):
     """Retrieve a single item by its ID."""
-    async with app.get_db_session() as session:  # type: AsyncSession
-        item = await session.get(Item, item_id)
-        if not item:
-            return JSONResponse({"error": "Item not found"}, status_code=404)
-        return {"id": item.id, "name": item.name, "description": item.description}
+    # 🆕 Session já disponível diretamente!
+    item = await session.get(Item, item_id)
+    if not item:
+        return JSONResponse({"error": "Item not found"}, status_code=404)
+    return {"id": item.id, "name": item.name, "description": item.description}
 
 
 @app.put("/items/{item_id}")
-async def update_item(request: Request, item_id: int):
+@with_db_session  # 🆕 Session automaticamente injetada!
+async def update_item(session: AsyncSession, request: Request, item_id: int):
     """Update an existing item."""
     data = await request.json()
     serializer = ItemSerializer(data=data)
@@ -104,30 +109,31 @@ async def update_item(request: Request, item_id: int):
             status_code=422,
         )
 
-    async with app.get_db_session() as session:  # type: AsyncSession
-        item = await session.get(Item, item_id)
-        if not item:
-            return JSONResponse({"error": "Item not found"}, status_code=404)
+    # 🆕 Session já disponível diretamente!
+    item = await session.get(Item, item_id)
+    if not item:
+        return JSONResponse({"error": "Item not found"}, status_code=404)
 
-        for key, value in serializer.validated_data.items():
-            setattr(item, key, value)
+    for key, value in serializer.validated_data.items():
+        setattr(item, key, value)
 
-        await session.commit()
-        await session.refresh(item)
-        return {"id": item.id, "name": item.name, "description": item.description}
+    await session.commit()
+    await session.refresh(item)
+    return {"id": item.id, "name": item.name, "description": item.description}
 
 
 @app.delete("/items/{item_id}")
-async def delete_item(request: Request, item_id: int):
+@with_db_session  # 🆕 Session automaticamente injetada!
+async def delete_item(session: AsyncSession, request: Request, item_id: int):
     """Delete an item from the database."""
-    async with app.get_db_session() as session:  # type: AsyncSession
-        item = await session.get(Item, item_id)
-        if not item:
-            return JSONResponse({"error": "Item not found"}, status_code=404)
+    # 🆕 Session já disponível diretamente!
+    item = await session.get(Item, item_id)
+    if not item:
+        return JSONResponse({"error": "Item not found"}, status_code=404)
 
-        await session.delete(item)
-        await session.commit()
-        return {"message": f"Item {item_id} deleted successfully"}
+    await session.delete(item)
+    await session.commit()
+    return {"message": f"Item {item_id} deleted successfully"}
 
 
 # --- Startup Event ---

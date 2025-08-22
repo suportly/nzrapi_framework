@@ -8,6 +8,10 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
+from nzrapi import check_password_hash  # 🆕 Função simplificada de verificação
+from nzrapi import create_password_hash  # 🆕 Função simplificada de hash
+from nzrapi import get_session_reliable  # 🆕 Session confiável
+from nzrapi import with_db_session  # 🆕 Decorator de session
 from nzrapi import (
     Depends,
     NzrApiApp,
@@ -129,8 +133,13 @@ async def get_user_service(
     return UserService(database, settings)
 
 
-# Create app and router
-app = NzrApiApp(title="Dependency Injection Demo", version="1.0.0")
+# Create app and router with improved debugging
+app = NzrApiApp(
+    title="Dependency Injection Demo",
+    version="1.0.0",
+    debug=True,
+    debug_level="debug",  # 🆕 Debug para dependency injection
+)
 router = Router(prefix="/api/v1", tags=["users"])
 
 

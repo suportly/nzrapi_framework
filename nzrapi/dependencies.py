@@ -307,3 +307,118 @@ def create_dependency_provider(provider_func: Callable) -> Callable:
         return provider_func(request, app)
 
     return dependency_provider
+
+
+def get_session_reliable(request: Request):
+    """
+    Get database session with robust error handling.
+
+    Tries multiple methods to get session:
+    1. request.state.db_session (middleware)
+    2. request.app.get_db_session() (direct)
+    3. fallback with clear error
+
+    Args:
+        request: Current request object
+
+    Returns:
+        AsyncSession database session
+
+    Raises:
+        RuntimeError: If no database session is available with helpful message
+
+    Example:
+        >>> async def my_endpoint(request: Request):
+        ...     session = get_session_reliable(request)
+        ...     # session is guaranteed to work or raise clear error
+    """
+    # Try middleware-injected session first
+    if hasattr(request.state, "db_session") and request.state.db_session:
+        return request.state.db_session
+
+    # Try app-level session
+    if hasattr(request, "app"):
+        app = getattr(request, "app", None)
+        if app and hasattr(app, "get_db_session"):
+            # For sync context, we need to handle async generator
+            return app.get_db_session()
+
+    # Try getting NzrApiApp from state
+    if hasattr(request.state, "nzrapi_app"):
+        nzrapi_app = request.state.nzrapi_app
+        if hasattr(nzrapi_app, "get_db_session"):
+            return nzrapi_app.get_db_session()
+
+    # Clear error message with helpful debugging info
+    error_msg = (
+        "Database session not available. "
+        "Ensure:\n"
+        "1. NzrApiApp is initialized with database_url\n"
+        "2. DatabaseMiddleware is properly configured\n"
+        "3. Request is processed through middleware stack\n"
+        f"Debug info - request.state: {dir(request.state)}"
+    )
+    raise RuntimeError(error_msg)
+
+
+def with_db_session(func):
+    """
+    Decorator that automatically injects db session as first parameter.
+
+    Example:
+        >>> @with_db_session
+        ... async def my_endpoint(session, request: Request):
+        ...     # session is automatically injected
+        ...     users = await session.execute(select(User))
+        ...     return JSONResponse({"users": len(users.all())})
+    """
+
+    @wraps(func)
+    async def wrapper(request: Request, *args, **kwargs):
+        session = get_session_reliable(request)
+
+        # Inject session as first parameter after request
+        sig = inspect.signature(func)
+        param_names = list(sig.parameters.keys())
+
+        if len(param_names) > 1 and param_names[1] not in kwargs:
+            # Inject session as second parameter (after request)
+            return await func(request, session, *args, **kwargs)
+        else:
+            # Add to kwargs
+            kwargs["session"] = session
+            return await func(request, *args, **kwargs)
+
+    return wrapper
+
+
+async def quick_db_query(request: Request, model_class, **filters):
+    """
+    Quick database query helper.
+
+    Example:
+        >>> users = await quick_db_query(request, User, active=True)
+        >>> user = await quick_db_query(request, User, id=123)
+    """
+    session = get_session_reliable(request)
+
+    try:
+        from sqlalchemy import select
+    except ImportError:
+        raise RuntimeError("SQLAlchemy is required for quick_db_query. Install with: pip install sqlalchemy")
+
+    stmt = select(model_class)
+    for key, value in filters.items():
+        stmt = stmt.where(getattr(model_class, key) == value)
+
+    result = await session.execute(stmt)
+    return result.scalars().all() if len(filters) != 1 or "id" not in filters else result.scalar_one_or_none()
+
+
+def db_session_dependency():
+    """Create a dependency for db session that always works."""
+
+    def get_session(request: Request):
+        return get_session_reliable(request)
+
+    return Depends(get_session)

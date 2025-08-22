@@ -64,6 +64,7 @@ class NzrApiApp:
         self,
         database_url: Optional[str] = None,
         debug: bool = False,
+        debug_level: str = "info",  # NEW: "info", "debug", "verbose"
         title: str = "NzrApi API",
         version: str = "0.2.1",
         description: Optional[str] = None,
@@ -77,6 +78,7 @@ class NzrApiApp:
         Args:
             database_url: Database connection URL for async SQLAlchemy
             debug: Enable debug mode with detailed logging
+            debug_level: Debug verbosity level ("info", "debug", "verbose")
             title: API title for documentation
             version: API version
             description: API description for documentation
@@ -93,6 +95,7 @@ class NzrApiApp:
         Example:
             >>> app = NzrApiApp(
             ...     title="My API",
+            ...     debug_level="verbose",  # Helpful debugging
             ...     middleware=[
             ...         Middleware(RequestIDMiddleware),
             ...         Middleware(CORSMiddleware, allow_origins=["*"])
@@ -101,12 +104,16 @@ class NzrApiApp:
         """
         self.database_url = database_url
         self.debug = debug
+        self.debug_level = debug_level
         self.title = title
         self.version = version
         self.description = description
         self.docs_openapi_url = docs_openapi_url
         self.docs_url = docs_url
         self.openapi_schema: Optional[Dict[str, Any]] = None
+
+        # Setup logging based on debug level
+        self._setup_debug_logging()
 
         # Core components
         self.db_manager = DatabaseManager(database_url) if database_url else None
@@ -186,6 +193,35 @@ class NzrApiApp:
 
         # Add router's routes to main router with the prefix
         self.router.include_router(router, prefix=prefix)
+
+    def _setup_debug_logging(self):
+        """Setup logging based on debug level."""
+        import logging
+
+        logger = logging.getLogger("nzrapi")
+
+        if self.debug_level == "verbose":
+            logger.setLevel(logging.DEBUG)
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter(
+                "[%(asctime)s] %(levelname)s in %(module)s.%(funcName)s:%(lineno)d - %(message)s"
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+            logger.debug("Verbose debugging enabled")
+        elif self.debug_level == "debug":
+            logger.setLevel(logging.DEBUG)
+            logger.debug("Debug mode enabled")
+        else:
+            logger.setLevel(logging.INFO)
+
+    def log_dependency_resolution(self, func_name: str, dependencies: dict):
+        """Log dependency resolution for debugging."""
+        if self.debug_level == "verbose":
+            import logging
+
+            logger = logging.getLogger("nzrapi")
+            logger.debug(f"Resolving dependencies for {func_name}: {list(dependencies.keys())}")
 
     @asynccontextmanager
     async def lifespan(self, app: Starlette) -> AsyncGenerator[None, None]:

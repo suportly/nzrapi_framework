@@ -1,4 +1,4 @@
-from starlette.requests import Request
+from .requests import Request
 
 
 class BaseFilterBackend:

@@ -7,18 +7,25 @@ from .dependencies import (
     Depends,
     authenticated_user,
     create_dependency_provider,
+    db_session_dependency,
     get_current_user,
     get_db,
     get_db_session,
     get_db_with_commit,
     get_request,
+    get_session_reliable,
     inject_dependencies,
     pagination,
+    quick_db_query,
     register_dependency,
     require_auth,
+    with_db_session,
 )
 from .exceptions import (
     AuthenticationError,
+    DatabaseConfigurationError,
+    DependencyInjectionError,
+    DeveloperFriendlyError,
     ModelNotFoundError,
     NzrApiException,
     ValidationError,
@@ -65,13 +72,17 @@ from .security import (
     api_key_query,
     basic_auth,
     bearer_token,
+    check_password_hash,
     create_access_token,
     create_api_key_dependency,
     create_basic_auth_dependency,
     create_jwt_bearer,
     create_oauth2_password_bearer,
+    create_password_hash,
     generate_secret_key,
     hash_password,
+    simple_hash_password,
+    simple_verify_password,
     verify_password,
     verify_token,
 )
@@ -87,7 +98,7 @@ from .websockets import (
     websocket_endpoint,
 )
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __author__ = "NzrApi Team"
 
 __all__ = [
@@ -128,6 +139,9 @@ __all__ = [
     "ValidationError",
     "ModelNotFoundError",
     "AuthenticationError",
+    "DeveloperFriendlyError",
+    "DatabaseConfigurationError",
+    "DependencyInjectionError",
     # Type safety features
     "Query",
     "Path",
@@ -149,6 +163,10 @@ __all__ = [
     "get_request",
     "get_db_session",
     "get_current_user",
+    "get_session_reliable",
+    "with_db_session",
+    "quick_db_query",
+    "db_session_dependency",
     "pagination",
     "authenticated_user",
     "require_auth",
@@ -174,6 +192,10 @@ __all__ = [
     "generate_secret_key",
     "hash_password",
     "verify_password",
+    "create_password_hash",
+    "check_password_hash",
+    "simple_hash_password",
+    "simple_verify_password",
     "create_access_token",
     "verify_token",
     "create_jwt_bearer",

@@ -119,7 +119,7 @@ class Router:
             **kwargs,
         )
 
-    def add_api_view(self, path: str, view_class: Callable, **kwargs):
+    def add_api_view(self, path: str, view_class: Any, **kwargs):
         """Register a class-based view"""
         view_methods = [m.upper() for m in dir(view_class) if m in ["get", "post", "put", "patch", "delete"]]
 

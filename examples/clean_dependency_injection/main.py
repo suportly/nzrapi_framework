@@ -24,12 +24,13 @@ from examples.clean_dependency_injection.api.routes.users import router as users
 from examples.clean_dependency_injection.config import settings
 from nzrapi import NzrApiApp
 
-# Create app
+# Create app with improved debugging
 app = NzrApiApp(
     title="Clean Dependency Injection Demo",
     description="Refactored example showing Clean Architecture principles",
     version=settings.app.version,
     debug=settings.debug,
+    debug_level="debug",  # 🆕 Debug melhorado para Clean Architecture
 )
 
 # Include routers
